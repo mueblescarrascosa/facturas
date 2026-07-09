@@ -90,6 +90,12 @@
   .linea-row input.num { font-family:var(--mono); font-size:11px; text-align:right; }
   .linea-row .desc-textarea { font-family:var(--sans); font-size:12px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); resize:none; overflow:hidden; line-height:1.35; min-height:29px; }
   .linea-row .desc-textarea:focus { border-color:var(--green); background:white; }
+  .ref-parte-input { font-family:var(--mono); font-size:11px; background:transparent; border:1px dashed var(--border-strong); border-radius:4px; padding:3px 7px; outline:none; width:100%; color:var(--text); transition:all 0.15s; }
+  .ref-parte-input:focus { border-style:solid; border-color:#0EA5E9; background:white; }
+  .ref-parte-input:not(:placeholder-shown) { border-style:solid; border-color:#0EA5E9; background:#F0F9FF; font-weight:600; color:#075985; }
+  .ref-parte-aviso { font-size:11px; padding:4px 8px; border-radius:4px; background:#FEF3C7; color:#92400E; line-height:1.4; }
+  body.dark .ref-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
+  body.dark .ref-parte-aviso { background:#422006; color:#FCD34D; }
   .linea-row .importe-cell { font-family:var(--mono); font-size:12px; text-align:right; padding:5px 7px; background:var(--bg); border-radius:4px; margin-top:1px; }
   .btn-del { background:none; border:none; cursor:pointer; color:#CBD5E1; font-size:16px; padding:2px; line-height:1; transition:color 0.15s; }
   .btn-del:hover { color:#EF4444; }
@@ -1640,7 +1646,7 @@ function ivaPorDefecto() {
 }
 function addLinea(update=true) {
   const id = lineasId++;
-  lineas.push({id,tipo:'linea',cod:'',desc:'',cant:'',precio:'',iva:ivaPorDefecto()});
+  lineas.push({id,tipo:'linea',cod:'',refParte:'',desc:'',cant:'',precio:'',iva:ivaPorDefecto()});
   renderLineas();
   if (update) actualizarTotales();
 }
@@ -1706,6 +1712,11 @@ function renderLineas() {
       // ── TARJETA MÓVIL: campos en vertical con etiquetas ──
       row.innerHTML = `
         <div class="m-field">
+          <label>🔖 Ref. parte (solo 1ª línea del parte)</label>
+          <input type="text" placeholder="Ej: V67015291" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
+          <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
+        </div>
+        <div class="m-field">
           <label>Descripción</label>
           <textarea placeholder="Descripción del artículo" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea desc-textarea-movil">${esc(l.desc)}</textarea>
         </div>
@@ -1745,7 +1756,11 @@ function renderLineas() {
              ondragstart="lineaDragStart(event,${l.id})"
              ondragend="lineaDragEnd()">⠿</div>
         <input type="text" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)">
-        <textarea placeholder="Descripción" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea">${esc(l.desc)}</textarea>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
+          <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
+          <textarea placeholder="Descripción" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea">${esc(l.desc)}</textarea>
+        </div>
         <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="0.01" oninput="updateLinea(${l.id},'cant',this.value)">
         <input type="number" class="num" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
         <select class="linea-iva-select" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
@@ -1765,12 +1780,71 @@ function renderLineas() {
   lineas.forEach(l => { if (l.tipo !== 'bloque') comprobarPrecioLinea(l.id); });
   // Ajustar altura de las descripciones largas (dos o más líneas)
   document.querySelectorAll('.desc-textarea').forEach(autoGrow);
+  // Comprobar referencias de parte repetidas
+  comprobarTodasRefPartes();
 }
 // Ajusta la altura de un textarea a su contenido
 function autoGrow(el) {
   if (!el) return;
   el.style.height = 'auto';
   el.style.height = (el.scrollHeight) + 'px';
+}
+
+// ── COMPROBACIÓN DE REFERENCIAS DE PARTE REPETIDAS ────────────────────────────
+// Normaliza una referencia para comparar (quita espacios, mayúsculas)
+function normalizarRef(ref) {
+  return (ref||'').trim().toUpperCase().replace(/\s+/g,'');
+}
+function comprobarRefParte(id) {
+  const linea = lineas.find(l => l.id === id);
+  const avisoEl = document.getElementById('refParteAviso_' + id);
+  if (!linea || !avisoEl) return;
+  const ref = normalizarRef(linea.refParte);
+  if (!ref) { avisoEl.style.display = 'none'; avisoEl.textContent = ''; return; }
+
+  const avisos = [];
+
+  // 1. ¿Repetida en ESTE mismo documento? (en otra línea)
+  const repetidaAqui = lineas.some(l => l.id !== id && l.tipo !== 'bloque' && normalizarRef(l.refParte) === ref);
+  if (repetidaAqui) {
+    avisos.push('⚠ Esta referencia ya está en otra línea de este mismo documento.');
+  }
+
+  // 2. ¿Está en OTRO documento guardado?
+  const h = getHistorial();
+  const numActual = document.getElementById('numero').value.trim();
+  const enOtros = [];
+  h.forEach(doc => {
+    // Saltar el documento que estamos editando (mismo número)
+    if (documentoEnEdicion && doc.id === documentoEnEdicion) return;
+    if ((doc.lineas||[]).some(l => normalizarRef(l.refParte) === ref)) {
+      const tipoDoc = (doc.tipo||'documento').charAt(0) + (doc.tipo||'').slice(1).toLowerCase();
+      enOtros.push(`${tipoDoc} ${doc.numero||'s/n'} (${doc.cliente_nombre||'sin cliente'})`);
+    }
+  });
+  if (enOtros.length) {
+    avisos.push('⚠ Esta referencia ya aparece en: ' + enOtros.join(', ') + '.');
+  }
+
+  if (avisos.length) {
+    avisoEl.innerHTML = avisos.join('<br>');
+    avisoEl.style.display = 'block';
+  } else {
+    avisoEl.style.display = 'none';
+    avisoEl.textContent = '';
+  }
+}
+// Comprobar todas las referencias de parte (tras render o carga)
+function comprobarTodasRefPartes() {
+  lineas.forEach(l => { if (l.tipo !== 'bloque' && l.refParte) comprobarRefParte(l.id); });
+}
+// Construye el texto de descripción con la referencia del parte delante (para PDF/preview).
+// Si la línea tiene refParte, sale "V67015291 · descripción". Si no, solo la descripción.
+function descConParte(l) {
+  const ref = (l.refParte||'').trim();
+  const desc = l.desc||'';
+  if (ref) return ref + '  ' + desc;
+  return desc;
 }
 
 function esMovil() { return window.matchMedia('(max-width:900px)').matches; }
@@ -2047,7 +2121,7 @@ function actualizarLineasPreview() {
     const imp=(parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
     if (!(l.desc||l.cant||l.precio)) return;
     const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-    html += `<tr><td class="cod">${l.cod||''}</td><td>${l.desc||''}</td><td class="right">${l.cant?fmtNum(l.cant):''}</td><td class="right">${l.precio?fmt(parseFloat(l.precio)):''}</td><td class="right">${imp!==0?ivaL+'%':''}</td><td class="right">${imp!==0?fmt(imp):'—'}</td></tr>`;
+    html += `<tr><td class="cod">${l.cod||''}</td><td>${esc(descConParte(l))}</td><td class="right">${l.cant?fmtNum(l.cant):''}</td><td class="right">${l.precio?fmt(parseFloat(l.precio)):''}</td><td class="right">${imp!==0?ivaL+'%':''}</td><td class="right">${imp!==0?fmt(imp):'—'}</td></tr>`;
   });
   tbody.innerHTML = html;
 }
@@ -2522,7 +2596,7 @@ async function _generarPDFreal(){
     if(f && f.tipo==='linea'){
       const l = f.l;
       col(muted);doc.setFont('courier','normal');doc.setFontSize(7.5);doc.text(l.cod||'',cols.cod,y+4.5);
-      col(black);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(l.desc||'',cols.desc,y+4.5,{maxWidth:cols.cant-cols.desc-6});
+      col(black);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(descConParte(l),cols.desc,y+4.5,{maxWidth:cols.cant-cols.desc-6});
       const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=cant*precio;
       col(black);doc.setFont('courier','normal');doc.setFontSize(7.5);
       if(cant) doc.text(fmtNum(cant),cols.cant,y+4.5,{align:'right'});
@@ -3174,7 +3248,7 @@ function exportarExcel() {
     const cant = parseFloat(l.cant)||0;
     const precio = parseFloat(l.precio)||0;
     const ivaL = (l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-    rows.push([l.cod||'', l.desc||'', cant||'', precio||'', ivaL+'%', cant*precio||'']);
+    rows.push([l.cod||'', descConParte(l), cant||'', precio||'', ivaL+'%', cant*precio||'']);
     // Si la siguiente es bloque o es la última, y este pertenece a un bloque, añadir subtotal
     const enBloque = lineas.slice(0, idx).some(x => x.tipo==='bloque');
     const esFinDeBloque = (idx+1>=lineas.length) || (lineas[idx+1] && lineas[idx+1].tipo==='bloque');
