@@ -93,6 +93,12 @@
   .ref-parte-input { font-family:var(--mono); font-size:11px; background:transparent; border:1px dashed var(--border-strong); border-radius:4px; padding:3px 7px; outline:none; width:100%; color:var(--text); transition:all 0.15s; }
   .ref-parte-input:focus { border-style:solid; border-color:#0EA5E9; background:white; }
   .ref-parte-input:not(:placeholder-shown) { border-style:solid; border-color:#0EA5E9; background:#F0F9FF; font-weight:600; color:#075985; }
+  .dir-parte-input { font-family:var(--sans); font-size:11px; background:transparent; border:1px dashed var(--border-strong); border-radius:4px; padding:3px 7px; outline:none; width:100%; color:var(--text); transition:all 0.15s; }
+  .dir-parte-input:focus { border-style:solid; border-color:#0EA5E9; background:white; }
+  .dir-parte-input:not(:placeholder-shown) { border-style:solid; border-color:#0EA5E9; background:#F0F9FF; color:#075985; }
+  .campos-parte { display:none !important; flex-direction:column; gap:3px; }
+  body.modo-parte .campos-parte { display:flex !important; }
+  body.dark .dir-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
   .ref-parte-aviso { font-size:11px; padding:4px 8px; border-radius:4px; background:#FEF3C7; color:#92400E; line-height:1.4; }
   body.dark .ref-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
   body.dark .ref-parte-aviso { background:#422006; color:#FCD34D; }
@@ -1032,6 +1038,10 @@
           <label>Teléfono (para WhatsApp)</label>
           <input type="tel" id="cliente_tel" placeholder="600 123 456" inputmode="tel" oninput="actualizarPreview()">
         </div>
+        <div class="field-group mono">
+          <label>Nº cliente (opcional)</label>
+          <input type="text" id="cliente_num" placeholder="Ej: 108" oninput="actualizarPreview()">
+        </div>
       </div>
     </div>
 
@@ -1050,6 +1060,9 @@
         <span></span>
       </div>
       <datalist id="articulosDatalist"></datalist>
+      <div style="margin-bottom:10px">
+        <button id="btnModoParte" onclick="toggleModoParte()" style="font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border-strong);background:transparent;color:var(--text-muted);font-family:var(--sans);font-weight:600;cursor:pointer;transition:all 0.15s">🔖 Modo aseguradora: desactivado</button>
+      </div>
       <div id="lineasContainer"></div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button class="btn-add-linea" style="flex:1;min-width:140px;font-size:14px;padding:11px" onclick="addLinea()">+ Añadir línea</button>
@@ -1200,7 +1213,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v3.0';
+const APP_VERSION = 'v4.0';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1486,6 +1499,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initPin();
   // Iniciar sincronización con la nube (login si hace falta)
   iniciarSupabase();
+  // Restaurar el modo aseguradora si estaba activo
+  iniciarModoParte();
   // Mostrar versión en configuración
   const vEl = document.getElementById('appVersion');
   if (vEl) vEl.textContent = `Versión ${APP_VERSION} · ${new Date().getFullYear()}`;
@@ -1646,7 +1661,7 @@ function ivaPorDefecto() {
 }
 function addLinea(update=true) {
   const id = lineasId++;
-  lineas.push({id,tipo:'linea',cod:'',refParte:'',desc:'',cant:'',precio:'',iva:ivaPorDefecto()});
+  lineas.push({id,tipo:'linea',cod:'',refParte:'',dirParte:'',desc:'',cant:'',precio:'',iva:ivaPorDefecto()});
   renderLineas();
   if (update) actualizarTotales();
 }
@@ -1711,10 +1726,12 @@ function renderLineas() {
     if (esMovil()) {
       // ── TARJETA MÓVIL: campos en vertical con etiquetas ──
       row.innerHTML = `
-        <div class="m-field">
+        <div class="m-field campos-parte">
           <label>🔖 Ref. parte (solo 1ª línea del parte)</label>
           <input type="text" placeholder="Ej: V67015291" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
           <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
+          <label style="margin-top:6px">📍 Dirección del parte</label>
+          <input type="text" placeholder="Ej: CL Santo Rostro" value="${esc(l.dirParte||'')}" oninput="updateLinea(${l.id},'dirParte',this.value)" class="dir-parte-input" id="dirParte_${l.id}">
         </div>
         <div class="m-field">
           <label>Descripción</label>
@@ -1757,8 +1774,11 @@ function renderLineas() {
              ondragend="lineaDragEnd()">⠿</div>
         <input type="text" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
         <div style="display:flex;flex-direction:column;gap:3px">
-          <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
-          <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
+          <div class="campos-parte">
+            <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
+            <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
+            <input type="text" placeholder="📍 Dirección del parte" value="${esc(l.dirParte||'')}" oninput="updateLinea(${l.id},'dirParte',this.value)" class="dir-parte-input" id="dirParte_${l.id}">
+          </div>
           <textarea placeholder="Descripción" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea">${esc(l.desc)}</textarea>
         </div>
         <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="0.01" oninput="updateLinea(${l.id},'cant',this.value)">
@@ -1838,12 +1858,43 @@ function comprobarRefParte(id) {
 function comprobarTodasRefPartes() {
   lineas.forEach(l => { if (l.tipo !== 'bloque' && l.refParte) comprobarRefParte(l.id); });
 }
-// Construye el texto de descripción con la referencia del parte delante (para PDF/preview).
-// Si la línea tiene refParte, sale "V67015291 · descripción". Si no, solo la descripción.
+// ── MODO ASEGURADORA: mostrar/ocultar los campos de Ref. parte y Dirección ────
+function toggleModoParte() {
+  const activo = document.body.classList.toggle('modo-parte');
+  try { localStorage.setItem('mc_modo_parte', activo ? '1' : '0'); } catch(e){}
+  actualizarBotonModoParte();
+}
+function actualizarBotonModoParte() {
+  const btn = document.getElementById('btnModoParte');
+  if (!btn) return;
+  const activo = document.body.classList.contains('modo-parte');
+  if (activo) {
+    btn.textContent = '🔖 Modo aseguradora: activado';
+    btn.style.background = '#0EA5E9';
+    btn.style.color = 'white';
+    btn.style.borderColor = '#0EA5E9';
+  } else {
+    btn.textContent = '🔖 Modo aseguradora: desactivado';
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--text-muted)';
+    btn.style.borderColor = 'var(--border-strong)';
+  }
+}
+// Restaurar el estado guardado al arrancar
+function iniciarModoParte() {
+  const guardado = localStorage.getItem('mc_modo_parte') === '1';
+  if (guardado) document.body.classList.add('modo-parte');
+  actualizarBotonModoParte();
+}
+
+// Construye el texto de descripción con la referencia y dirección del parte delante (para PDF/preview).
+// Si la línea tiene refParte y/o dirParte, sale "V67015291 · CL Santo Rostro · descripción".
 function descConParte(l) {
   const ref = (l.refParte||'').trim();
+  const dir = (l.dirParte||'').trim();
   const desc = l.desc||'';
-  if (ref) return ref + '  ' + desc;
+  const prefijo = [ref, dir].filter(Boolean).join('  ');
+  if (prefijo) return prefijo + '  ' + desc;
   return desc;
 }
 
@@ -2143,6 +2194,7 @@ function capturarEstado(){
     cliente_pob:document.getElementById('cliente_pob').value,
     cliente_nif:document.getElementById('cliente_nif').value,
     cliente_tel:document.getElementById('cliente_tel').value,
+    cliente_num:document.getElementById('cliente_num').value,
     idioma_pdf:document.getElementById('idioma_pdf').value,
     lineas:lineas.map(l=>({...l})),
     descuento:document.getElementById('descuento').value,
@@ -2185,7 +2237,7 @@ function cargarEstado(estado){
   tipoActual=estado.tipo||'PRESUPUESTO';
   setEstado(estado.estado||'PENDIENTE');
   document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.toggle('active',b.dataset.tipo===tipoActual));
-  ['numero','fecha','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','descuento','iva_pct','forma_pago','observaciones'].forEach(id=>{document.getElementById(id).value=estado[id]||'';});
+  ['numero','fecha','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','descuento','iva_pct','forma_pago','observaciones'].forEach(id=>{document.getElementById(id).value=estado[id]||'';});
   document.getElementById('idioma_pdf').value=estado.idioma_pdf||'es';
   if(!estado.iva_pct) document.getElementById('iva_pct').value='21';
   document.getElementById('texto_legal').value=estado.texto_legal||LEGAL_DEFAULT;
@@ -2226,7 +2278,7 @@ function nuevoDocumento(){
   document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.toggle('active',b.dataset.tipo==='PRESUPUESTO'));
   setEstado('PENDIENTE');
   sugerirNumero();
-  ['numero','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','descuento','forma_pago','observaciones'].forEach(id=>document.getElementById(id).value='');
+  ['numero','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','descuento','forma_pago','observaciones'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('iva_pct').value='21';
   const c=getConfig(); document.getElementById('texto_legal').value=c.texto_legal||LEGAL_DEFAULT;
@@ -3378,11 +3430,12 @@ function guardarClienteActual() {
     dir: document.getElementById('cliente_dir').value,
     pob: document.getElementById('cliente_pob').value,
     nif: document.getElementById('cliente_nif').value,
-    tel: document.getElementById('cliente_tel').value
+    tel: document.getElementById('cliente_tel').value,
+    num: document.getElementById('cliente_num').value.trim()
   };
   const clientes = getClientes();
-  // Si existe uno con el mismo nombre (case-insensitive), actualizar
-  const idx = clientes.findIndex(x => x.nombre.toLowerCase() === nombre.toLowerCase());
+  // Buscar si ya existe: por Nº cliente, luego NIF, luego nombre
+  const idx = indiceClienteExistente(clientes, cliente);
   if (idx >= 0) {
     clientes[idx] = {...clientes[idx], ...cliente, id: clientes[idx].id};
     mostrarToast('✓ Cliente actualizado en la agenda', true);
@@ -3391,6 +3444,30 @@ function guardarClienteActual() {
     mostrarToast('✓ Cliente guardado en la agenda', true);
   }
   saveClientes(clientes);
+}
+
+// Busca si un cliente ya existe en la lista, por orden de fiabilidad:
+// 1) Nº cliente  2) NIF  3) nombre exacto. Devuelve el índice o -1.
+function indiceClienteExistente(clientes, cliente) {
+  const num = (cliente.num||'').trim().toLowerCase();
+  const nif = (cliente.nif||'').trim().toLowerCase().replace(/[\s.-]/g,'');
+  const nombre = (cliente.nombre||'').trim().toLowerCase();
+  // 1. Por número de cliente (si lo tiene)
+  if (num) {
+    const i = clientes.findIndex(c => (c.num||'').trim().toLowerCase() === num);
+    if (i >= 0) return i;
+  }
+  // 2. Por NIF (si lo tiene)
+  if (nif) {
+    const i = clientes.findIndex(c => (c.nif||'').trim().toLowerCase().replace(/[\s.-]/g,'') === nif);
+    if (i >= 0) return i;
+  }
+  // 3. Por nombre exacto
+  if (nombre) {
+    const i = clientes.findIndex(c => (c.nombre||'').trim().toLowerCase() === nombre);
+    if (i >= 0) return i;
+  }
+  return -1;
 }
 
 function onClienteNombreInput(val) {
@@ -3418,6 +3495,7 @@ function seleccionarCliente(id) {
   document.getElementById('cliente_pob').value = c.pob || '';
   document.getElementById('cliente_nif').value = c.nif || '';
   document.getElementById('cliente_tel').value = c.tel || '';
+  document.getElementById('cliente_num').value = c.num || '';
   cerrarSugerenciasCliente();
   actualizarPreview();
   mostrarToast('Cliente cargado');
@@ -3449,7 +3527,7 @@ function renderClientesList() {
     <div class="cli-item" style="flex-direction:column;align-items:stretch;gap:8px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
         <div class="cli-item-info">
-          <div class="cli-item-nombre">${esc(c.nombre)}</div>
+          <div class="cli-item-nombre">${c.num?`<span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:600">#${esc(c.num)}</span> `:''}${esc(c.nombre)}</div>
           <div class="cli-item-datos">${[c.tel?'📞 '+c.tel:'', c.dir, c.pob, c.nif].filter(Boolean).map(esc).join(' · ')||'Sin datos adicionales'}</div>
         </div>
         <button class="cli-item-del" onclick="eliminarCliente(${c.id})" title="Eliminar">×</button>
@@ -3476,6 +3554,7 @@ function nuevoDocParaCliente(clienteId) {
   document.getElementById('cliente_pob').value = c.pob || '';
   document.getElementById('cliente_nif').value = c.nif || '';
   document.getElementById('cliente_tel').value = c.tel || '';
+  document.getElementById('cliente_num').value = c.num || '';
   document.getElementById('fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('iva_pct').value='21';
   document.getElementById('validez_dias').value='30';
@@ -3900,33 +3979,81 @@ function importarClientes(event) {
       }
       if (!nuevos.length) { mostrarToast('El archivo no contiene clientes'); return; }
       const clientes = getClientes();
-      const existentes = new Set(clientes.map(c=>(c.nombre||'').toLowerCase()));
-      let añadidos = 0, maxId = Date.now();
+      let añadidos = 0, actualizados = 0, maxId = Date.now();
       nuevos.forEach(n => {
-        const nombre = n.nombre||'';
-        if (!nombre || existentes.has(nombre.toLowerCase())) return;
-        clientes.unshift({ id: maxId++, nombre, dir:n.dir||'', pob:n.pob||'', nif:n.nif||'', tel:n.tel||'' });
-        existentes.add(nombre.toLowerCase());
-        añadidos++;
+        const nombre = (n.nombre||'').trim();
+        if (!nombre) return;
+        const candidato = {
+          nombre,
+          dir: n.dir||'', pob: n.pob||'', nif: n.nif||'', tel: n.tel||'', num: (n.num||'').trim()
+        };
+        // ¿Ya existe? (por Nº cliente, NIF o nombre)
+        const idx = indiceClienteExistente(clientes, candidato);
+        if (idx >= 0) {
+          // Actualizar solo los campos que vengan con dato (no borrar lo que ya había)
+          const existente = clientes[idx];
+          clientes[idx] = {
+            ...existente,
+            nombre: candidato.nombre || existente.nombre,
+            dir: candidato.dir || existente.dir,
+            pob: candidato.pob || existente.pob,
+            nif: candidato.nif || existente.nif,
+            tel: candidato.tel || existente.tel,
+            num: candidato.num || existente.num,
+            id: existente.id
+          };
+          actualizados++;
+        } else {
+          clientes.unshift({ id: maxId++, ...candidato });
+          añadidos++;
+        }
       });
       saveClientes(clientes);
       renderClientesList();
-      mostrarToast(`✓ ${añadidos} clientes importados`, true);
+      let msg = `✓ ${añadidos} nuevos`;
+      if (actualizados) msg += `, ${actualizados} actualizados`;
+      mostrarToast(msg, true);
     } catch(err) { mostrarToast('Error al leer el archivo'); }
   };
   reader.readAsText(file); event.target.value='';
 }
 function parseCSVClientes(txt) {
-  // Espera columnas: nombre, direccion, poblacion, nif
+  // Espera columnas: nombre, direccion, poblacion, nif, telefono, [nº cliente]
   const lineas = txt.split(/\r?\n/).filter(l=>l.trim());
   if (!lineas.length) return [];
   const sep = lineas[0].includes(';') ? ';' : (lineas[0].includes('\t') ? '\t' : ',');
   const cabecera = lineas[0].toLowerCase();
-  const tieneCabecera = /nombre|nif|direcc|poblac|cliente/.test(cabecera);
+  const tieneCabecera = /nombre|nif|direcc|poblac|cliente|tel|c[oó]digo|n[uú]m/.test(cabecera);
+  // Si hay cabecera, detectar posición de cada columna por su nombre
+  let mapa = null;
+  if (tieneCabecera) {
+    const cols = cabecera.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+    mapa = {};
+    cols.forEach((c,i) => {
+      if (/nombre|raz[oó]n|cliente/.test(c) && mapa.nombre===undefined) mapa.nombre=i;
+      else if (/direcc|domicil|calle/.test(c)) mapa.dir=i;
+      else if (/poblac|ciudad|localidad|municipio/.test(c)) mapa.pob=i;
+      else if (/nif|cif|dni/.test(c)) mapa.nif=i;
+      else if (/tel|m[oó]vil|whatsapp/.test(c)) mapa.tel=i;
+      else if (/n[uú]m|c[oó]digo|n[ºo]/.test(c)) mapa.num=i;
+    });
+  }
   const filas = tieneCabecera ? lineas.slice(1) : lineas;
   return filas.map(l => {
     const p = l.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
-    return { nombre: p[0]||'', dir: p[1]||'', pob: p[2]||'', nif: p[3]||'', tel: p[4]||'' };
+    if (mapa && mapa.nombre !== undefined) {
+      // Usar el mapa de columnas detectado
+      return {
+        nombre: p[mapa.nombre]||'',
+        dir: mapa.dir!==undefined ? (p[mapa.dir]||'') : '',
+        pob: mapa.pob!==undefined ? (p[mapa.pob]||'') : '',
+        nif: mapa.nif!==undefined ? (p[mapa.nif]||'') : '',
+        tel: mapa.tel!==undefined ? (p[mapa.tel]||'') : '',
+        num: mapa.num!==undefined ? (p[mapa.num]||'') : ''
+      };
+    }
+    // Sin cabecera: orden fijo nombre, dir, pob, nif, tel, num
+    return { nombre: p[0]||'', dir: p[1]||'', pob: p[2]||'', nif: p[3]||'', tel: p[4]||'', num: p[5]||'' };
   }).filter(c => c.nombre);
 }
 
