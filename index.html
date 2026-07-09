@@ -1722,7 +1722,7 @@ function renderLineas() {
         </div>
         <div class="m-field">
           <label>Código (opcional)</label>
-          <input type="text" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)">
+          <input type="text" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
         </div>
         <div class="m-field-row">
           <div class="m-field">
@@ -1755,7 +1755,7 @@ function renderLineas() {
              draggable="true"
              ondragstart="lineaDragStart(event,${l.id})"
              ondragend="lineaDragEnd()">⠿</div>
-        <input type="text" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)">
+        <input type="text" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
         <div style="display:flex;flex-direction:column;gap:3px">
           <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
           <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
@@ -4011,6 +4011,29 @@ function autocompletarArticulo(lineaId, valor) {
   if (!l.cant) l.cant = '1';
   renderLineas();
   actualizarTotales();
+}
+
+// Autocompletar por CÓDIGO: al escribir un código que coincide con un artículo guardado,
+// rellena la descripción y el precio automáticamente (si están vacíos).
+function autocompletarPorCodigo(lineaId, codigo) {
+  const l = lineas.find(x => x.id === lineaId);
+  if (!l) return;
+  const cod = (codigo||'').trim();
+  if (!cod) return;
+  // Buscar un artículo con ese código exacto
+  const art = (articulos||[]).find(a => (a.cod||'').trim().toLowerCase() === cod.toLowerCase());
+  if (!art) return;
+  let cambiado = false;
+  // Rellenar descripción si está vacía
+  if (!l.desc && art.desc) { l.desc = art.desc; cambiado = true; }
+  // Rellenar precio si está vacío
+  if (!l.precio && art.precio) { l.precio = art.precio; cambiado = true; }
+  // Poner cantidad 1 si está vacía
+  if (!l.cant) { l.cant = '1'; cambiado = true; }
+  if (cambiado) {
+    renderLineas();
+    actualizarTotales();
+  }
 }
 
 
