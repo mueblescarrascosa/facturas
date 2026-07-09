@@ -859,6 +859,55 @@
   </div>
 </div>
 
+<!-- MODAL EDITAR FICHA DE CLIENTE -->
+<div class="modal-overlay" id="modalEditarCliente" onclick="if(event.target===this)cerrarFichaCliente()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>✏️ Ficha del cliente</h3>
+      <button class="btn-close-drawer" onclick="cerrarFichaCliente()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ficha_id">
+      <div class="field-group" style="margin-bottom:10px">
+        <label>Nombre</label>
+        <input type="text" id="ficha_nombre" placeholder="Nombre del cliente">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="field-group">
+          <label>Nº cliente</label>
+          <input type="text" id="ficha_num" placeholder="Ej: 108">
+        </div>
+        <div class="field-group mono">
+          <label>NIF / CIF</label>
+          <input type="text" id="ficha_nif" placeholder="00000000X">
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:10px">
+        <label>Dirección</label>
+        <input type="text" id="ficha_dir" placeholder="Calle, número, piso...">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="field-group">
+          <label>Población</label>
+          <input type="text" id="ficha_pob" placeholder="Ciudad">
+        </div>
+        <div class="field-group mono">
+          <label>Teléfono</label>
+          <input type="tel" id="ficha_tel" placeholder="600 123 456">
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:14px">
+        <label>📝 Notas internas (privadas, solo para ti)</label>
+        <textarea id="ficha_notas" rows="4" placeholder="Ej: Cliente de Mapfre. Pagos a 30 días. Prefiere que le llame por la tarde..." style="width:100%;font-family:var(--sans);font-size:13px;padding:10px;border:1.5px solid var(--border-strong);border-radius:var(--radius);resize:vertical;line-height:1.5"></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="guardarFichaCliente()" style="flex:1;padding:12px;font-size:14px;font-weight:600;background:var(--green);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--sans)">Guardar cambios</button>
+        <button onclick="cerrarFichaCliente()" style="padding:12px 18px;font-size:14px;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;font-family:var(--sans)">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- DRAWER CLIENTES -->
 <div class="side-drawer side-drawer-wide" id="clientesDrawer">
   <div class="drawer-header">
@@ -1213,7 +1262,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v4.0';
+const APP_VERSION = 'v4.5';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -3529,15 +3578,57 @@ function renderClientesList() {
         <div class="cli-item-info">
           <div class="cli-item-nombre">${c.num?`<span style="font-family:var(--mono);font-size:11px;color:var(--text-muted);font-weight:600">#${esc(c.num)}</span> `:''}${esc(c.nombre)}</div>
           <div class="cli-item-datos">${[c.tel?'📞 '+c.tel:'', c.dir, c.pob, c.nif].filter(Boolean).map(esc).join(' · ')||'Sin datos adicionales'}</div>
+          ${c.notas?`<div style="font-size:11px;color:#92400E;background:#FEF3C7;padding:4px 8px;border-radius:4px;margin-top:5px;line-height:1.4">📝 ${esc(c.notas)}</div>`:''}
         </div>
         <button class="cli-item-del" onclick="eliminarCliente(${c.id})" title="Eliminar">×</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-hist-action" style="background:var(--bg);border:1.5px solid var(--border-strong);color:var(--text-muted)" onclick="abrirFichaCliente(${c.id})">✏️ Editar ficha</button>
         <button class="btn-hist-action btn-hist-load" onclick="nuevoDocParaCliente(${c.id})">+ Nuevo documento</button>
         ${tieneUltimo ? `<button class="btn-hist-action" style="background:#EEF2FF;color:#6366F1" onclick="cargarUltimoDocCliente(${c.id})">Duplicar último (${docsCliente.length})</button>` : ''}
       </div>
     </div>`;
   }).join('');
+}
+
+// ── FICHA DEL CLIENTE (editar datos + notas internas) ─────────────────────────
+function abrirFichaCliente(clienteId) {
+  const c = getClientes().find(x => x.id === clienteId);
+  if (!c) return;
+  document.getElementById('ficha_id').value = c.id;
+  document.getElementById('ficha_nombre').value = c.nombre || '';
+  document.getElementById('ficha_num').value = c.num || '';
+  document.getElementById('ficha_nif').value = c.nif || '';
+  document.getElementById('ficha_dir').value = c.dir || '';
+  document.getElementById('ficha_pob').value = c.pob || '';
+  document.getElementById('ficha_tel').value = c.tel || '';
+  document.getElementById('ficha_notas').value = c.notas || '';
+  document.getElementById('modalEditarCliente').classList.add('open');
+}
+function guardarFichaCliente() {
+  const id = parseInt(document.getElementById('ficha_id').value, 10);
+  const nombre = document.getElementById('ficha_nombre').value.trim();
+  if (!nombre) { mostrarToast('El nombre no puede quedar vacío'); return; }
+  const clientes = getClientes();
+  const idx = clientes.findIndex(c => c.id === id);
+  if (idx < 0) { mostrarToast('No se encontró el cliente'); return; }
+  clientes[idx] = {
+    ...clientes[idx],
+    nombre,
+    num: document.getElementById('ficha_num').value.trim(),
+    nif: document.getElementById('ficha_nif').value.trim(),
+    dir: document.getElementById('ficha_dir').value.trim(),
+    pob: document.getElementById('ficha_pob').value.trim(),
+    tel: document.getElementById('ficha_tel').value.trim(),
+    notas: document.getElementById('ficha_notas').value.trim()
+  };
+  saveClientes(clientes);
+  renderClientesList();
+  cerrarFichaCliente();
+  mostrarToast('✓ Ficha actualizada', true);
+}
+function cerrarFichaCliente() {
+  document.getElementById('modalEditarCliente').classList.remove('open');
 }
 
 // Nuevo documento con los datos de este cliente ya puestos
