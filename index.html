@@ -927,6 +927,7 @@
       <button class="btn-action-sm btn-outline-sm" style="color:var(--text-muted);border-color:var(--border-strong)" onclick="document.getElementById('importCliInput').click()">⬆ Importar lista</button>
       <input type="file" id="importCliInput" accept=".json,.csv" style="display:none" onchange="importarClientes(event)">
     </div>
+    <input type="text" id="clientesSearch" placeholder="🔎 Buscar por nombre, nº, NIF, teléfono, población..." oninput="renderClientesList()" style="width:100%;padding:10px 12px;font-size:14px;border:1.5px solid var(--border-strong);border-radius:var(--radius);font-family:var(--sans);margin-bottom:10px;background:var(--surface);color:var(--text)">
     <div id="clientesList"></div>
   </div>
 </div>
@@ -1270,7 +1271,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v4.6';
+const APP_VERSION = 'v4.7';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2320,6 +2321,14 @@ function cargarEstado(estado){
   setEstado(estado.estado||'PENDIENTE');
   document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.toggle('active',b.dataset.tipo===tipoActual));
   ['numero','fecha','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','cliente_email','descuento','iva_pct','forma_pago','observaciones'].forEach(id=>{document.getElementById(id).value=estado[id]||'';});
+  // Si el documento cargado tiene referencias de parte, mostrar los campos automáticamente
+  // (para que no queden ocultos sin que el usuario se dé cuenta de que existen)
+  if ((estado.lineas||[]).some(l => (l.refParte||'').trim() || (l.dirParte||'').trim())) {
+    if (!document.body.classList.contains('modo-parte')) {
+      document.body.classList.add('modo-parte');
+      if (typeof actualizarBotonModoParte === 'function') actualizarBotonModoParte();
+    }
+  }
   document.getElementById('idioma_pdf').value=estado.idioma_pdf||'es';
   if(!estado.iva_pct) document.getElementById('iva_pct').value='21';
   document.getElementById('texto_legal').value=estado.texto_legal||LEGAL_DEFAULT;
@@ -3598,10 +3607,28 @@ function abrirClientes() {
 
 function renderClientesList() {
   const list = document.getElementById('clientesList');
-  const clientes = getClientes();
+  let clientes = getClientes();
   if (!clientes.length) {
     list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px">Aún no hay clientes guardados.<br>Rellena los datos de un cliente y pulsa <strong>+ Guardar en agenda</strong>.</div>';
     return;
+  }
+  // Filtro de búsqueda (nombre, nº cliente, NIF, teléfono, población, email, notas)
+  const q = (document.getElementById('clientesSearch')?.value || '').trim().toLowerCase();
+  if (q) {
+    clientes = clientes.filter(c =>
+      [c.nombre, c.num, c.nif, c.tel, c.pob, c.dir, c.email, c.notas].some(v => (v||'').toLowerCase().includes(q))
+    );
+    if (!clientes.length) {
+      list.innerHTML = `<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px">Ningún cliente coincide con «${esc(q)}».</div>`;
+      return;
+    }
+  }
+  // Sin búsqueda y con muchos clientes: mostrar solo los primeros 100 (rapidez en móvil)
+  let avisoLimite = '';
+  const totalClientes = clientes.length;
+  if (!q && totalClientes > 100) {
+    clientes = clientes.slice(0, 100);
+    avisoLimite = `<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius);margin-top:8px">Mostrando 100 de ${totalClientes} clientes · usa el buscador para encontrar el resto</div>`;
   }
   list.innerHTML = clientes.map(c => {
     // Buscar el último documento de este cliente
@@ -3623,7 +3650,7 @@ function renderClientesList() {
         ${tieneUltimo ? `<button class="btn-hist-action" style="background:#EEF2FF;color:#6366F1" onclick="cargarUltimoDocCliente(${c.id})">Duplicar último (${docsCliente.length})</button>` : ''}
       </div>
     </div>`;
-  }).join('');
+  }).join('') + avisoLimite;
 }
 
 // ── FICHA DEL CLIENTE (editar datos + notas internas) ─────────────────────────
@@ -3929,7 +3956,7 @@ function compartirWhatsApp() {
   activas.forEach(l => {
     if (l.tipo === 'bloque') { msg += `*${l.titulo}*\n`; return; }
     const imp = (parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
-    if (imp!==0) msg += `• ${l.desc||''} — ${fmt(imp)}\n`;
+    if (imp!==0) msg += `• ${descConParte(l)} — ${fmt(imp)}\n`;
   });
   msg += `\n*TOTAL: ${fmt(t.total)}*`;
   if (t.anticipo>0) msg += `\nA cuenta: ${fmt(t.anticipo)} · Pendiente: ${fmt(t.pendiente)}`;
@@ -3968,7 +3995,7 @@ function compartirEmail() {
   activas.forEach(l => {
     if (l.tipo === 'bloque') { cuerpo += `\n${l.titulo.toUpperCase()}\n`; return; }
     const imp = (parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
-    if (imp!==0) cuerpo += `  - ${l.desc||''}: ${fmt(imp)}\n`;
+    if (imp!==0) cuerpo += `  - ${descConParte(l)}: ${fmt(imp)}\n`;
   });
   cuerpo += `\nTOTAL: ${fmt(t.total)}`;
   if (t.anticipo>0) cuerpo += `\nA cuenta: ${fmt(t.anticipo)} - Pendiente: ${fmt(t.pendiente)}`;
@@ -3980,7 +4007,9 @@ function compartirEmail() {
   if (cfg.telefono) cuerpo += `\nTel: ${cfg.telefono}`;
   if (cfg.email) cuerpo += `\n${cfg.email}`;
 
-  const mailto = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  // Si el cliente tiene email guardado, el correo sale ya dirigido a él
+  const emailCliente = (document.getElementById('cliente_email').value || '').trim();
+  const mailto = `mailto:${encodeURIComponent(emailCliente)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
   try { _generarPDFreal(); } catch(e) {}
   setTimeout(() => {
     window.location.href = mailto;
@@ -4216,7 +4245,7 @@ function copiarResumen() {
     const cant = parseFloat(l.cant)||0, precio = parseFloat(l.precio)||0, imp = cant*precio;
     if (imp!==0) {
       const cantTxt = cant!==1 ? `${fmtNum(cant)} x ` : '';
-      txt += `${l.desc||''}: ${cantTxt}${fmt(precio)} = ${fmt(imp)}\n`;
+      txt += `${descConParte(l)}: ${cantTxt}${fmt(precio)} = ${fmt(imp)}\n`;
     }
   });
   txt += `${'─'.repeat(32)}\n`;
