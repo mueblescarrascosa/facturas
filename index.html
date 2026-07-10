@@ -99,6 +99,17 @@
   .campos-parte { display:none !important; flex-direction:column; gap:3px; }
   body.modo-parte .campos-parte { display:flex !important; }
   body.dark .dir-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
+  /* Barra de acceso rápido: últimos documentos guardados */
+  .acceso-rapido { display:flex; align-items:center; gap:6px; overflow-x:auto; padding:2px 2px 8px; margin:-6px 0 8px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; min-width:0; max-width:100%; }
+  .form-panel { min-width:0; } /* permite que la barra encoja y scrollee en vez de desbordar la página */
+  .acceso-rapido::-webkit-scrollbar { height:4px; }
+  .acceso-rapido::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:2px; }
+  .ar-label { flex:0 0 auto; font-size:13px; opacity:0.6; }
+  .ar-chip { flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border:1.5px solid var(--border-strong); border-radius:16px; background:var(--surface); cursor:pointer; font-family:var(--sans); font-size:11.5px; color:var(--text); transition:border-color 0.12s, background 0.12s; max-width:230px; }
+  .ar-chip:hover { border-color:var(--green); }
+  .ar-chip.activo { border-color:var(--green); background:var(--green-light); }
+  .ar-chip .ar-num { font-family:var(--mono); font-weight:700; white-space:nowrap; }
+  .ar-chip .ar-cli { color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
   .ref-parte-aviso { font-size:11px; padding:4px 8px; border-radius:4px; background:#FEF3C7; color:#92400E; line-height:1.4; }
   body.dark .ref-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
   body.dark .ref-parte-aviso { background:#422006; color:#FCD34D; }
@@ -994,6 +1005,7 @@
 
   <!-- ═══ FORMULARIO ═══ -->
   <div class="form-panel">
+    <div class="acceso-rapido" id="accesoRapido" style="display:none"></div>
 
     <div>
       <div class="section-label">Tipo de documento</div>
@@ -1272,7 +1284,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v4.9';
+const APP_VERSION = 'v4.10';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1560,6 +1572,8 @@ document.addEventListener('DOMContentLoaded', () => {
   iniciarSupabase();
   // Restaurar el modo aseguradora si estaba activo
   iniciarModoParte();
+  // Pintar la barra de acceso rápido con los últimos guardados
+  renderAccesoRapido();
   // Mostrar versión en configuración
   const vEl = document.getElementById('appVersion');
   if (vEl) vEl.textContent = `Versión ${APP_VERSION} · ${new Date().getFullYear()}`;
@@ -2333,6 +2347,7 @@ function guardarEnHistorial(){
   saveHistorial(h);
   documentoEnEdicion = estado.id; // a partir de ahora editamos este
   actualizarBotonGuardar();
+  renderAccesoRapido();
   mostrarToast('✓ Guardado en el historial',true);
 }
 
@@ -2366,9 +2381,26 @@ function cargarEstado(estado){
   // Recordar que estamos editando este documento concreto
   documentoEnEdicion = estado.id || null;
   actualizarBotonGuardar();
+  renderAccesoRapido();
   mostrarToast('Documento cargado — puedes editarlo y actualizar');
 }
 let documentoEnEdicion = null;
+
+// ── ACCESO RÁPIDO: barra con los últimos documentos guardados ────────────────
+function renderAccesoRapido() {
+  const cont = document.getElementById('accesoRapido');
+  if (!cont) return;
+  const h = getHistorial().slice(0, 6);
+  if (!h.length) { cont.style.display = 'none'; cont.innerHTML=''; return; }
+  cont.style.display = 'flex';
+  cont.innerHTML = '<span class="ar-label" title="Últimos guardados">🕐</span>' + h.map(d => {
+    const activo = (documentoEnEdicion === d.id) ? ' activo' : '';
+    const cli = (d.cliente_nombre || '').trim();
+    const titulo = `${d.tipo || ''} ${d.numero || ''}${cli ? ' · ' + cli : ''}`;
+    return `<button class="ar-chip${activo}" onclick="cargarDesdeHistorial(${d.id})" title="${esc(titulo)}"><span class="ar-num">${esc(d.numero || 's/n')}</span>${cli ? `<span class="ar-cli">${esc(cli)}</span>` : ''}</button>`;
+  }).join('');
+}
+
 function actualizarBotonGuardar() {
   const btn = document.getElementById('btnGuardar');
   if (!btn) return;
@@ -2402,13 +2434,14 @@ function nuevoDocumento(){
   imagenes=[]; imgIdCounter=0; renderImagenes();
   documentoEnEdicion=null;
   actualizarBotonGuardar();
+  renderAccesoRapido();
   actualizarPreview();
 }
 
 function eliminarDelHistorial(id,e){
   e.stopPropagation();
   if(!confirm('¿Eliminar este documento del historial?')) return;
-  saveHistorial(getHistorial().filter(x=>x.id!==id)); renderHistorial();
+  saveHistorial(getHistorial().filter(x=>x.id!==id)); renderHistorial(); renderAccesoRapido();
 }
 
 function poblarAnyosHistorial(h) {
@@ -4871,6 +4904,7 @@ function guardarTodosExcel() {
   });
   saveHistorial(h);
   actualizarBadge();
+  renderAccesoRapido();
   cerrarModalImportExcel();
   mostrarToast(`✓ ${guardados} documento${guardados > 1 ? 's' : ''} guardado${guardados > 1 ? 's' : ''} en el historial`, true);
 }
