@@ -82,9 +82,9 @@
   .divider { border:none; border-top:1px solid var(--border); margin:0; }
 
   /* LÍNEAS */
-  .lineas-header { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 48px 76px 46px; gap:5px; padding:0 0 6px; border-bottom:2px solid var(--navy); }
+  .lineas-header { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 44px 48px 76px 46px; gap:5px; padding:0 0 6px; border-bottom:2px solid var(--navy); }
   .lineas-header span { font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
-  .linea-row { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 48px 76px 46px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
+  .linea-row { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 44px 48px 76px 46px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
   .linea-row input { font-family:var(--sans); font-size:12px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
   .linea-row input:focus { border-color:var(--green); background:white; }
   .linea-row input.num { font-family:var(--mono); font-size:11px; text-align:right; }
@@ -1113,6 +1113,7 @@
         <span>Código</span><span>Descripción</span>
         <span style="text-align:right">Cant.</span>
         <span style="text-align:right">Precio</span>
+        <span style="text-align:right">Dto%</span>
         <span style="text-align:center">IVA</span>
         <span style="text-align:right">Importe</span>
         <span></span>
@@ -1271,7 +1272,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v4.7';
+const APP_VERSION = 'v4.9';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1719,7 +1720,7 @@ function ivaPorDefecto() {
 }
 function addLinea(update=true) {
   const id = lineasId++;
-  lineas.push({id,tipo:'linea',cod:'',refParte:'',dirParte:'',desc:'',cant:'',precio:'',iva:ivaPorDefecto()});
+  lineas.push({id,tipo:'linea',cod:'',refParte:'',dirParte:'',desc:'',cant:'',precio:'',dto:'',iva:ivaPorDefecto()});
   renderLineas();
   if (update) actualizarTotales();
   return id;
@@ -1761,7 +1762,7 @@ function subtotalBloque(idxBloque) {
   for (let i = idxBloque + 1; i < lineas.length; i++) {
     if (lineas[i].tipo === 'bloque') break; // siguiente bloque corta
     const l = lineas[i];
-    const imp = (parseFloat(l.cant)||0) * (parseFloat(l.precio)||0);
+    const imp = importeLineaNum(l);
     if (imp === 0) continue;
     const iva = (l.iva===undefined||l.iva===null)?ivaPorDefecto():parseFloat(l.iva);
     baseSinIva += imp;
@@ -1833,9 +1834,15 @@ function renderLineas() {
             <input type="number" inputmode="decimal" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
           </div>
         </div>
-        <div class="m-field">
-          <label>IVA</label>
-          <select onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
+        <div class="m-field-row">
+          <div class="m-field">
+            <label>Dto. % (opcional)</label>
+            <input type="number" inputmode="decimal" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" oninput="updateLinea(${l.id},'dto',this.value)">
+          </div>
+          <div class="m-field">
+            <label>IVA</label>
+            <select onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
+          </div>
         </div>
         <div class="importe-cell" id="imp_${l.id}">${importeLinea(l)}</div>
         <div class="linea-acciones">
@@ -1865,6 +1872,7 @@ function renderLineas() {
         </div>
         <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="0.01" oninput="updateLinea(${l.id},'cant',this.value)">
         <input type="number" class="num" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
+        <input type="number" class="num" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" title="Descuento % solo de esta línea" oninput="updateLinea(${l.id},'dto',this.value)">
         <select class="linea-iva-select" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
         <div class="importe-cell" id="imp_${l.id}">${importeLinea(l)}</div>
         <div class="linea-acciones">
@@ -1917,8 +1925,11 @@ function comprobarRefParte(id) {
   const numActual = document.getElementById('numero').value.trim();
   const enOtros = [];
   h.forEach(doc => {
-    // Saltar el documento que estamos editando (mismo número)
+    // Saltar el documento que estamos editando (mismo id)
     if (documentoEnEdicion && doc.id === documentoEnEdicion) return;
+    // Saltar también si tiene el mismo número que el documento en pantalla:
+    // es este mismo documento (p. ej. restaurado del borrador tras reabrir la app)
+    if (numActual && (doc.numero||'').trim() === numActual) return;
     if ((doc.lineas||[]).some(l => normalizarRef(l.refParte) === ref)) {
       const tipoDoc = (doc.tipo||'documento').charAt(0) + (doc.tipo||'').slice(1).toLowerCase();
       enOtros.push(`${tipoDoc} ${doc.numero||'s/n'} (${doc.cliente_nombre||'sin cliente'})`);
@@ -1976,8 +1987,11 @@ function descConParte(l) {
   const dir = (l.dirParte||'').trim();
   const desc = l.desc||'';
   const prefijo = [ref, dir].filter(Boolean).join('  ');
-  if (prefijo) return prefijo + '  ' + desc;
-  return desc;
+  let out = prefijo ? (prefijo + '  ' + desc) : desc;
+  // Si la línea tiene descuento propio, indicarlo junto a la descripción
+  const d = parseFloat(l.dto)||0;
+  if (d > 0) out += ' (dto. ' + fmtNum(d) + '%)';
+  return out;
 }
 
 function esMovil() { return window.matchMedia('(max-width:900px)').matches; }
@@ -2112,11 +2126,17 @@ function delLinea(id) {
   renderLineas();
   actualizarTotales();
 }
-function importeLinea(l) { const c=parseFloat(l.cant)||0,p=parseFloat(l.precio)||0; return (c&&p)?fmt(c*p):'—'; }
+// Importe numérico de una línea, aplicando su descuento propio (si lo tiene)
+function importeLineaNum(l) {
+  const c=parseFloat(l.cant)||0, p=parseFloat(l.precio)||0;
+  let d=parseFloat(l.dto)||0; if(d<0)d=0; if(d>100)d=100;
+  return c*p*(1-d/100);
+}
+function importeLinea(l) { const c=parseFloat(l.cant)||0,p=parseFloat(l.precio)||0; return (c&&p)?fmt(importeLineaNum(l)):'—'; }
 
 // ── TOTALES ───────────────────────────────────────────────────────────────────
 function calcTotales() {
-  const subtotal=lineas.reduce((s,l)=>s+(parseFloat(l.cant)||0)*(parseFloat(l.precio)||0),0);
+  const subtotal=lineas.reduce((s,l)=>s+importeLineaNum(l),0);
   let descPct=parseFloat(document.getElementById('descuento').value)||0;
   if(descPct<0) descPct=0; if(descPct>100) descPct=100; // proteger rango
   const descFactor = subtotal>0 ? (1 - descPct/100) : 1;
@@ -2126,7 +2146,7 @@ function calcTotales() {
   const ivaPorTipo = {}; // {21: importeIva, 10: ..., 0: ...}
   let baseImponiblePorTipo = {};
   lineas.forEach(l => {
-    const imp = (parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
+    const imp = importeLineaNum(l);
     if (imp===0) return; // las líneas negativas (abonos) también llevan su IVA
     const tipo = (l.iva===undefined||l.iva===null)?ivaPorDefecto():parseFloat(l.iva);
     const baseLinea = imp * descFactor; // descuento proporcional
@@ -2251,7 +2271,7 @@ function actualizarLineasPreview() {
       }
       return;
     }
-    const imp=(parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
+    const imp=importeLineaNum(l);
     if (!(l.desc||l.cant||l.precio)) return;
     const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
     html += `<tr><td class="cod">${l.cod||''}</td><td>${esc(descConParte(l))}</td><td class="right">${l.cant?fmtNum(l.cant):''}</td><td class="right">${l.precio?fmt(parseFloat(l.precio)):''}</td><td class="right">${imp!==0?ivaL+'%':''}</td><td class="right">${imp!==0?fmt(imp):'—'}</td></tr>`;
@@ -2740,7 +2760,7 @@ async function _generarPDFreal(){
       const l = f.l;
       col(muted);doc.setFont('courier','normal');doc.setFontSize(7.5);doc.text(l.cod||'',cols.cod,y+4.5);
       col(black);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(descConParte(l),cols.desc,y+4.5,{maxWidth:cols.cant-cols.desc-6});
-      const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=cant*precio;
+      const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=importeLineaNum(l);
       col(black);doc.setFont('courier','normal');doc.setFontSize(7.5);
       if(cant) doc.text(fmtNum(cant),cols.cant,y+4.5,{align:'right'});
       if(precio) doc.text(fmt(precio),cols.precio,y+4.5,{align:'right'});
@@ -3391,7 +3411,7 @@ function exportarExcel() {
     const cant = parseFloat(l.cant)||0;
     const precio = parseFloat(l.precio)||0;
     const ivaL = (l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-    rows.push([l.cod||'', descConParte(l), cant||'', precio||'', ivaL+'%', cant*precio||'']);
+    rows.push([l.cod||'', descConParte(l), cant||'', precio||'', ivaL+'%', importeLineaNum(l)||'']);
     // Si la siguiente es bloque o es la última, y este pertenece a un bloque, añadir subtotal
     const enBloque = lineas.slice(0, idx).some(x => x.tipo==='bloque');
     const esFinDeBloque = (idx+1>=lineas.length) || (lineas[idx+1] && lineas[idx+1].tipo==='bloque');
@@ -3773,7 +3793,11 @@ function actualizarIndicadorGuardado() {
 function guardarBorrador() {
   try {
     const estado = capturarEstado();
-    delete estado.id; // el borrador no es un documento del historial
+    // Si estamos editando un documento ya guardado, el borrador conserva el vínculo.
+    // Así, al reabrir la app, no se auto-avisa de refs "repetidas" contra sí mismo
+    // y al guardar se actualiza el documento en vez de crear un duplicado.
+    if (documentoEnEdicion) estado.id = documentoEnEdicion;
+    else delete estado.id;
     estado.guardadoBorrador = new Date().toISOString();
     localStorage.setItem(DRAFT_KEY, JSON.stringify(estado));
   } catch(e) { /* localStorage lleno: ignorar silenciosamente */ }
@@ -3955,7 +3979,7 @@ function compartirWhatsApp() {
   const activas = lineas.filter(l => l.tipo==='bloque' ? (l.titulo&&l.titulo.trim()) : (l.desc||l.precio));
   activas.forEach(l => {
     if (l.tipo === 'bloque') { msg += `*${l.titulo}*\n`; return; }
-    const imp = (parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
+    const imp = importeLineaNum(l);
     if (imp!==0) msg += `• ${descConParte(l)} — ${fmt(imp)}\n`;
   });
   msg += `\n*TOTAL: ${fmt(t.total)}*`;
@@ -3994,7 +4018,7 @@ function compartirEmail() {
   const activas = lineas.filter(l => l.tipo==='bloque' ? (l.titulo&&l.titulo.trim()) : (l.desc||l.precio));
   activas.forEach(l => {
     if (l.tipo === 'bloque') { cuerpo += `\n${l.titulo.toUpperCase()}\n`; return; }
-    const imp = (parseFloat(l.cant)||0)*(parseFloat(l.precio)||0);
+    const imp = importeLineaNum(l);
     if (imp!==0) cuerpo += `  - ${descConParte(l)}: ${fmt(imp)}\n`;
   });
   cuerpo += `\nTOTAL: ${fmt(t.total)}`;
@@ -4242,7 +4266,7 @@ function copiarResumen() {
   const activas = lineas.filter(l => l.tipo==='bloque' ? (l.titulo&&l.titulo.trim()) : (l.desc||l.precio));
   activas.forEach(l => {
     if (l.tipo === 'bloque') { txt += `\n${l.titulo.toUpperCase()}\n`; return; }
-    const cant = parseFloat(l.cant)||0, precio = parseFloat(l.precio)||0, imp = cant*precio;
+    const cant = parseFloat(l.cant)||0, precio = parseFloat(l.precio)||0, imp = importeLineaNum(l);
     if (imp!==0) {
       const cantTxt = cant!==1 ? `${fmtNum(cant)} x ` : '';
       txt += `${descConParte(l)}: ${cantTxt}${fmt(precio)} = ${fmt(imp)}\n`;
@@ -4733,7 +4757,7 @@ function mostrarResumenImportExcel(leidos, errores) {
 
   let html = `<div style="font-size:14px;margin-bottom:12px">Se ${leidos === 1 ? 'ha leído 1 documento' : 'han leído ' + leidos + ' documentos'}:</div>`;
   _excelPendientes.forEach((doc, i) => {
-    const total = doc.lineas.reduce((s, l) => s + (parseFloat(l.cant) || 0) * (parseFloat(l.precio) || 0), 0);
+    const total = doc.lineas.reduce((s, l) => s + importeLineaNum(l), 0);
     const tipoLabel = doc.tipo.charAt(0) + doc.tipo.slice(1).toLowerCase();
     html += `
       <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px">
@@ -4856,7 +4880,7 @@ function calcTotalesDeLineas(lineasArr, ivaPctDefecto) {
   let base = 0, ivaTotal = 0;
   lineasArr.forEach(l => {
     if (l.tipo === 'bloque') return; // los bloques no suman
-    const imp = (parseFloat(l.cant) || 0) * (parseFloat(l.precio) || 0);
+    const imp = importeLineaNum(l);
     base += imp;
     const ivaLinea = (l.iva !== undefined) ? l.iva : ivaPctDefecto;
     ivaTotal += imp * (ivaLinea / 100);
