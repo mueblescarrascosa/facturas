@@ -267,7 +267,7 @@
 
   /* ARTÍCULOS FRECUENTES */
   .art-list { display:flex; flex-direction:column; gap:6px; }
-  .art-item { display:grid; grid-template-columns:1fr 70px 80px 32px; gap:6px; align-items:center; padding:6px 8px; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius); }
+  .art-item { display:grid; grid-template-columns:1fr 90px 70px 80px 32px; gap:6px; align-items:center; padding:6px 8px; background:var(--bg); border:1.5px solid var(--border); border-radius:var(--radius); }
   .art-item input { font-family:var(--sans); font-size:12px; background:white; border:1.5px solid transparent; border-radius:4px; padding:4px 6px; outline:none; color:var(--text); width:100%; transition:border-color 0.15s; }
   .art-item input:focus { border-color:var(--green); }
   .art-item input.num { font-family:var(--mono); font-size:11px; text-align:right; }
@@ -938,7 +938,14 @@
       <button class="btn-action-sm btn-outline-sm" style="color:var(--text-muted);border-color:var(--border-strong)" onclick="document.getElementById('importCliInput').click()">⬆ Importar lista</button>
       <input type="file" id="importCliInput" accept=".json,.csv" style="display:none" onchange="importarClientes(event)">
     </div>
-    <input type="text" id="clientesSearch" placeholder="🔎 Buscar por nombre, nº, NIF, teléfono, población..." oninput="renderClientesList()" style="width:100%;padding:10px 12px;font-size:14px;border:1.5px solid var(--border-strong);border-radius:var(--radius);font-family:var(--sans);margin-bottom:10px;background:var(--surface);color:var(--text)">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input type="text" id="clientesSearch" placeholder="🔎 Buscar por nombre, nº, NIF, teléfono..." oninput="renderClientesList()" style="flex:1;min-width:0;padding:10px 12px;font-size:14px;border:1.5px solid var(--border-strong);border-radius:var(--radius);font-family:var(--sans);background:var(--surface);color:var(--text)">
+      <select id="clientesOrden" onchange="localStorage.setItem('mc_clientes_orden',this.value);renderClientesList()" title="Ordenar" style="flex:0 0 auto;padding:10px 8px;font-size:13px;border:1.5px solid var(--border-strong);border-radius:var(--radius);font-family:var(--sans);background:var(--surface);color:var(--text);cursor:pointer">
+        <option value="recientes">Recientes</option>
+        <option value="num">Por nº</option>
+        <option value="nombre">A–Z</option>
+      </select>
+    </div>
     <div id="clientesList"></div>
   </div>
 </div>
@@ -1106,7 +1113,7 @@
         </div>
         <div class="field-group mono">
           <label>Nº cliente (opcional)</label>
-          <input type="text" id="cliente_num" placeholder="Ej: 108" oninput="actualizarPreview()">
+          <input type="text" id="cliente_num" placeholder="Ej: 108" oninput="actualizarPreview()" onchange="autocompletarPorNumCliente(this.value)">
         </div>
         <div class="field-group">
           <label>Email (opcional)</label>
@@ -1284,7 +1291,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v4.10';
+const APP_VERSION = 'v5.0';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1454,6 +1461,7 @@ async function supaCargarTodo() {
   // Refrescar la interfaz con los datos ya sincronizados
   try {
     cargarConfig(); cargarArticulos(); cargarClientes(); actualizarBadge();
+    renderAccesoRapido(); migrarNumClienteHistorial();
   } catch(e){}
 }
 
@@ -1574,6 +1582,8 @@ document.addEventListener('DOMContentLoaded', () => {
   iniciarModoParte();
   // Pintar la barra de acceso rápido con los últimos guardados
   renderAccesoRapido();
+  // Completar el nº de cliente en documentos antiguos (silencioso si no hay nada que hacer)
+  migrarNumClienteHistorial();
   // Mostrar versión en configuración
   const vEl = document.getElementById('appVersion');
   if (vEl) vEl.textContent = `Versión ${APP_VERSION} · ${new Date().getFullYear()}`;
@@ -2386,6 +2396,33 @@ function cargarEstado(estado){
 }
 let documentoEnEdicion = null;
 
+// Rellena el Nº de cliente en documentos antiguos que no lo tienen,
+// cruzando por NIF (prioridad) o nombre exacto contra la agenda. Idempotente.
+function migrarNumClienteHistorial() {
+  try {
+    const h = getHistorial(); const cs = getClientes();
+    if (!h.length || !cs.length) return;
+    const norm = s => (s||'').trim().toLowerCase();
+    const normNif = s => norm(s).replace(/[\s.\-]/g,'');
+    const porNif = new Map(), porNombre = new Map();
+    cs.forEach(cli => {
+      if (!(cli.num||'').trim()) return;
+      const nf = normNif(cli.nif); if (nf && !porNif.has(nf)) porNif.set(nf, cli.num);
+      const nm = norm(cli.nombre); if (nm && !porNombre.has(nm)) porNombre.set(nm, cli.num);
+    });
+    let cambiados = 0;
+    h.forEach(d => {
+      if ((d.cliente_num||'').trim()) return;
+      const num = porNif.get(normNif(d.cliente_nif)) || porNombre.get(norm(d.cliente_nombre));
+      if (num) { d.cliente_num = num; cambiados++; }
+    });
+    if (cambiados) {
+      saveHistorial(h);
+      mostrarToast(`✓ ${cambiados} documento${cambiados>1?'s':''} del historial ahora ${cambiados>1?'tienen':'tiene'} su nº de cliente`, true);
+    }
+  } catch(e){}
+}
+
 // ── ACCESO RÁPIDO: barra con los últimos documentos guardados ────────────────
 function renderAccesoRapido() {
   const cont = document.getElementById('accesoRapido');
@@ -3191,7 +3228,7 @@ function guardarArticulos() {
   mostrarToast('✓ Artículos guardados', true);
 }
 function addArticulo() {
-  articulos.push({ id: artIdCnt++, cod:'', desc:'', precio:'' });
+  articulos.push({ id: artIdCnt++, cod:'', desc:'', precio:'', grupo:'' });
   renderArtList();
 }
 function delArticulo(id) {
@@ -3209,6 +3246,7 @@ function renderArtList() {
   list.innerHTML = articulos.map(a => `
     <div class="art-item">
       <input type="text" placeholder="Descripción del artículo o servicio" value="${esc(a.desc)}" oninput="updateArticulo(${a.id},'desc',this.value)">
+      <input type="text" placeholder="Grupo" value="${esc(a.grupo||'')}" oninput="updateArticulo(${a.id},'grupo',this.value)" title="Grupo o categoría (opcional)" style="font-size:11px">
       <input type="text" placeholder="Ref." value="${esc(a.cod)}" oninput="updateArticulo(${a.id},'cod',this.value)" style="font-family:var(--mono);font-size:11px">
       <input type="number" class="num" placeholder="Precio" value="${a.precio}" min="0" step="0.01" oninput="updateArticulo(${a.id},'precio',this.value)">
       <button class="btn-art-del" onclick="delArticulo(${a.id})">×</button>
@@ -3238,14 +3276,22 @@ function renderModalArticulos() {
   let filtrados = articulos;
   if (q) {
     filtrados = articulos.filter(a =>
-      (a.desc||'').toLowerCase().includes(q) || (a.cod||'').toLowerCase().includes(q)
+      (a.desc||'').toLowerCase().includes(q) || (a.cod||'').toLowerCase().includes(q) || (a.grupo||'').toLowerCase().includes(q)
     );
   }
   if (!filtrados.length) {
     list.innerHTML = `<div class="modal-empty">No hay artículos que coincidan con "${esc(q)}".</div>`;
     return;
   }
-  list.innerHTML = filtrados.map(a => `
+  // Agrupar por 'grupo' conservando el orden de la lista; los sin grupo, al final
+  const grupos = []; const idxG = new Map();
+  filtrados.forEach(a => {
+    const g = (a.grupo||'').trim();
+    if (!idxG.has(g)) { idxG.set(g, grupos.length); grupos.push({ nombre:g, items:[] }); }
+    grupos[idxG.get(g)].items.push(a);
+  });
+  grupos.sort((x,y) => (x.nombre===''?1:0) - (y.nombre===''?1:0));
+  const itemHTML = a => `
     <div class="art-quick-item">
       <div>
         <div class="art-quick-desc">${a.desc||'(sin descripción)'}</div>
@@ -3255,7 +3301,12 @@ function renderModalArticulos() {
         <span class="art-quick-precio">${a.precio?fmt(parseFloat(a.precio)):''}</span>
         <button class="art-quick-btn" onclick="insertarArticulo(${a.id})">+ Añadir</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  list.innerHTML = grupos.map(g =>
+    (g.nombre || grupos.length>1
+      ? `<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);padding:10px 2px 4px">${esc(g.nombre||'Otros')}</div>`
+      : '') + g.items.map(itemHTML).join('')
+  ).join('');
 }
 function cerrarModalArticulos() {
   document.getElementById('modalArticulos').classList.remove('open');
@@ -3632,6 +3683,49 @@ function onClienteNombreInput(val) {
   box.classList.add('open');
 }
 
+// Normaliza texto para comparar direcciones (sin acentos, puntuación ni mayúsculas)
+function normalizaTexto(s) {
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+// ¿Dos direcciones se parecen? (una contiene a la otra, o comparten ≥60% de palabras)
+function direccionesSimilares(a, b) {
+  a = normalizaTexto(a); b = normalizaTexto(b);
+  if (!a || !b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  const ta = new Set(a.split(' ')), tb = new Set(b.split(' '));
+  let comunes = 0; ta.forEach(t => { if (tb.has(t)) comunes++; });
+  return comunes / Math.max(ta.size, tb.size) >= 0.6;
+}
+// Al escribir un Nº de cliente que existe en la agenda, rellenar sus datos.
+// Si había una dirección escrita que NO se parece a la de la ficha, se conserva
+// (pasa al campo Referencia si está libre; si no, a Observaciones).
+function autocompletarPorNumCliente(num) {
+  num = (num||'').trim();
+  if (!num) return;
+  const c = getClientes().find(x => (x.num||'').trim().toLowerCase() === num.toLowerCase());
+  if (!c) return;
+  const dirEscrita = document.getElementById('cliente_dir').value.trim();
+  const dirFicha = (c.dir||'').trim();
+  if (dirEscrita && dirFicha && !direccionesSimilares(dirEscrita, dirFicha)) {
+    const refEl = document.getElementById('referencia');
+    if (!refEl.value.trim()) {
+      refEl.value = dirEscrita;
+      mostrarToast('La dirección escrita no coincide con la ficha: se ha guardado en Referencia');
+    } else {
+      const obsEl = document.getElementById('observaciones');
+      obsEl.value = (obsEl.value ? obsEl.value + '\n' : '') + 'Dirección indicada: ' + dirEscrita;
+      mostrarToast('La dirección escrita no coincide con la ficha: se ha añadido a Observaciones');
+    }
+  }
+  document.getElementById('cliente_nombre').value = c.nombre || '';
+  document.getElementById('cliente_dir').value = c.dir || '';
+  document.getElementById('cliente_pob').value = c.pob || '';
+  document.getElementById('cliente_nif').value = c.nif || '';
+  document.getElementById('cliente_tel').value = c.tel || '';
+  document.getElementById('cliente_email').value = c.email || '';
+  actualizarPreview();
+}
+
 function seleccionarCliente(id) {
   const c = getClientes().find(x => x.id === id);
   if (!c) return;
@@ -3675,6 +3769,19 @@ function renderClientesList() {
       list.innerHTML = `<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px">Ningún cliente coincide con «${esc(q)}».</div>`;
       return;
     }
+  }
+  // Ordenación elegida (se recuerda)
+  const orden = localStorage.getItem('mc_clientes_orden') || 'recientes';
+  const selOrden = document.getElementById('clientesOrden');
+  if (selOrden && selOrden.value !== orden) selOrden.value = orden;
+  if (orden === 'num') {
+    clientes = [...clientes].sort((a,b) => {
+      const na = parseFloat(a.num), nb = parseFloat(b.num);
+      const va = isNaN(na) ? Infinity : na, vb = isNaN(nb) ? Infinity : nb;
+      return va - vb || (a.nombre||'').localeCompare(b.nombre||'', 'es');
+    });
+  } else if (orden === 'nombre') {
+    clientes = [...clientes].sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'', 'es'));
   }
   // Sin búsqueda y con muchos clientes: mostrar solo los primeros 100 (rapidez en móvil)
   let avisoLimite = '';
@@ -4145,29 +4252,61 @@ function importarArticulos(event) {
         nuevos = Array.isArray(datos) ? datos : (datos.articulos || []);
       }
       if (!nuevos.length) { mostrarToast('El archivo no contiene artículos'); return; }
-      // Asignar nuevos ids y fusionar
+      // Fusionar sin duplicar: si el código (o la descripción exacta) ya existe, ACTUALIZA
       let maxId = articulos.length ? Math.max(...articulos.map(a=>a.id)) : -1;
-      nuevos.forEach(a => { articulos.push({ id:++maxId, cod:a.cod||'', desc:a.desc||'', precio:a.precio||'' }); });
+      let añadidos = 0, actualizados = 0;
+      const normCod = s => (s||'').trim().toLowerCase();
+      const normDesc = s => (s||'').trim().toLowerCase();
+      nuevos.forEach(a => {
+        const cod = normCod(a.cod), desc = normDesc(a.desc);
+        let idx = -1;
+        if (cod) idx = articulos.findIndex(x => normCod(x.cod) === cod);
+        if (idx < 0 && desc) idx = articulos.findIndex(x => normDesc(x.desc) === desc);
+        if (idx >= 0) {
+          const ex = articulos[idx];
+          articulos[idx] = { ...ex, desc: a.desc || ex.desc, cod: a.cod || ex.cod, precio: a.precio || ex.precio, grupo: a.grupo || ex.grupo || '' };
+          actualizados++;
+        } else {
+          articulos.push({ id:++maxId, cod:a.cod||'', desc:a.desc||'', precio:a.precio||'', grupo:a.grupo||'' });
+          añadidos++;
+        }
+      });
       artIdCnt = maxId+1;
       localStorage.setItem(ART_KEY, JSON.stringify(articulos));
       renderArtList();
       actualizarDatalistArticulos();
-      mostrarToast(`✓ ${nuevos.length} artículos importados`, true);
+      let msgArt = `✓ ${añadidos} nuevos`;
+      if (actualizados) msgArt += `, ${actualizados} actualizados`;
+      mostrarToast(msgArt, true);
     } catch(err) { mostrarToast('Error al leer el archivo'); }
   };
   reader.readAsText(file); event.target.value='';
 }
 function parseCSVArticulos(txt) {
-  // Espera columnas: descripcion, codigo, precio  (o desc, cod, precio)
+  // Columnas: descripcion, codigo, precio, [grupo] — con o sin cabecera
   const lineas = txt.split(/\r?\n/).filter(l=>l.trim());
   if (!lineas.length) return [];
   const sep = lineas[0].includes(';') ? ';' : (lineas[0].includes('\t') ? '\t' : ',');
   const cabecera = lineas[0].toLowerCase();
-  const tieneCabecera = /desc|precio|cod|art/.test(cabecera);
+  const tieneCabecera = /desc|precio|cod|art|grupo|categ/.test(cabecera);
+  let mapa = null;
+  if (tieneCabecera) {
+    const cols = cabecera.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+    mapa = {};
+    cols.forEach((cn,i) => {
+      if (/desc|art[ií]culo|concepto/.test(cn) && mapa.desc===undefined) mapa.desc=i;
+      else if (/c[oó]d|ref/.test(cn)) mapa.cod=i;
+      else if (/precio|importe|valor|pvp/.test(cn)) mapa.precio=i;
+      else if (/grupo|categ|secc|familia/.test(cn)) mapa.grupo=i;
+    });
+  }
   const filas = tieneCabecera ? lineas.slice(1) : lineas;
   return filas.map(l => {
-    const partes = l.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
-    return { desc: partes[0]||'', cod: partes[1]||'', precio: (partes[2]||'').replace(',','.') };
+    const p = l.split(sep).map(s=>s.trim().replace(/^"|"$/g,''));
+    if (mapa && mapa.desc !== undefined) {
+      return { desc: p[mapa.desc]||'', cod: mapa.cod!==undefined?(p[mapa.cod]||''):'', precio: ((mapa.precio!==undefined?p[mapa.precio]:'')||'').replace(',','.'), grupo: mapa.grupo!==undefined?(p[mapa.grupo]||''):'' };
+    }
+    return { desc: p[0]||'', cod: p[1]||'', precio: (p[2]||'').replace(',','.'), grupo: p[3]||'' };
   }).filter(a => a.desc);
 }
 
