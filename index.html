@@ -915,6 +915,7 @@
         <label>📝 Notas internas (privadas, solo para ti)</label>
         <textarea id="ficha_notas" rows="4" placeholder="Ej: Cliente de Mapfre. Pagos a 30 días. Prefiere que le llame por la tarde..." style="width:100%;font-family:var(--sans);font-size:13px;padding:10px;border:1.5px solid var(--border-strong);border-radius:var(--radius);resize:vertical;line-height:1.5"></textarea>
       </div>
+      <button onclick="verDocsCliente(parseInt(document.getElementById('ficha_id').value,10))" style="width:100%;padding:11px;font-size:13px;font-weight:600;background:transparent;color:var(--navy);border:1.5px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;font-family:var(--sans);margin-bottom:10px">📋 Ver sus documentos</button>
       <div style="display:flex;gap:8px">
         <button onclick="guardarFichaCliente()" style="flex:1;padding:12px;font-size:14px;font-weight:600;background:var(--green);color:white;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--sans)">Guardar cambios</button>
         <button onclick="cerrarFichaCliente()" style="padding:12px 18px;font-size:14px;background:var(--bg);color:var(--text-muted);border:1.5px solid var(--border-strong);border-radius:var(--radius);cursor:pointer;font-family:var(--sans)">Cancelar</button>
@@ -1291,7 +1292,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.0';
+const APP_VERSION = 'v5.2';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1839,6 +1840,7 @@ function renderLineas() {
           <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
           <label style="margin-top:6px">📍 Dirección del parte</label>
           <input type="text" placeholder="Ej: CL Santo Rostro" value="${esc(l.dirParte||'')}" oninput="updateLinea(${l.id},'dirParte',this.value)" class="dir-parte-input" id="dirParte_${l.id}">
+          <div id="visitaAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
         </div>
         <div class="m-field">
           <label>Descripción</label>
@@ -1891,6 +1893,7 @@ function renderLineas() {
             <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
             <div id="refParteAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
             <input type="text" placeholder="📍 Dirección del parte" value="${esc(l.dirParte||'')}" oninput="updateLinea(${l.id},'dirParte',this.value)" class="dir-parte-input" id="dirParte_${l.id}">
+            <div id="visitaAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
           </div>
           <textarea placeholder="Descripción" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea">${esc(l.desc)}</textarea>
         </div>
@@ -1974,6 +1977,38 @@ function comprobarRefParte(id) {
 // Comprobar todas las referencias de parte (tras render o carga)
 function comprobarTodasRefPartes() {
   lineas.forEach(l => { if (l.tipo !== 'bloque' && l.refParte) comprobarRefParte(l.id); });
+  comprobarVisitasParte();
+}
+
+// ── AVISO: visita + actuación en el MISMO parte ───────────────────────────────
+// Un "parte" son: la línea que lleva la ref + las siguientes sin ref (hasta otra
+// ref o un bloque). Si en un parte conviven una línea de "visita" cobrada y otra
+// línea de trabajo, se avisa en la visita: normalmente no se cobra si hay actuación.
+function comprobarVisitasParte() {
+  lineas.forEach(l => {
+    const el = document.getElementById('visitaAviso_' + l.id);
+    if (el) { el.style.display = 'none'; el.textContent = ''; }
+  });
+  const esVisita = l => /visita/i.test(l.desc || '');
+  let grupo = null; const grupos = [];
+  lineas.forEach(l => {
+    if (l.tipo === 'bloque') { grupo = null; return; }
+    if (normalizarRef(l.refParte)) { grupo = { lineas: [] }; grupos.push(grupo); }
+    if (grupo) grupo.lineas.push(l);
+  });
+  grupos.forEach(g => {
+    const visitas = g.lineas.filter(l => esVisita(l) && importeLineaNum(l) > 0);
+    const hayActuacion = g.lineas.some(l => !esVisita(l) && importeLineaNum(l) !== 0);
+    if (visitas.length && hayActuacion) {
+      visitas.forEach(v => {
+        const el = document.getElementById('visitaAviso_' + v.id);
+        if (el) {
+          el.textContent = '⚠ En este parte hay visita y actuación a la vez: revisa si la visita debe cobrarse.';
+          el.style.display = 'block';
+        }
+      });
+    }
+  });
 }
 // ── MODO ASEGURADORA: mostrar/ocultar los campos de Ref. parte y Dirección ────
 function toggleModoParte() {
@@ -2096,6 +2131,7 @@ function updateLinea(id,field,val) {
   actualizarSubtotalesBloque();
   actualizarTotales();
   if (field==='precio' || field==='desc') comprobarPrecioLinea(id);
+  if (field==='desc' || field==='cant' || field==='precio' || field==='dto') comprobarVisitasParte();
 }
 // Refresca solo los textos de subtotal de los bloques sin re-renderizar todo (no pierde el foco)
 function actualizarSubtotalesBloque() {
@@ -3853,6 +3889,16 @@ function guardarFichaCliente() {
 }
 function cerrarFichaCliente() {
   document.getElementById('modalEditarCliente').classList.remove('open');
+}
+// Abre el historial ya filtrado con los documentos de este cliente
+function verDocsCliente(clienteId) {
+  const c = getClientes().find(x => x.id === clienteId);
+  if (!c) return;
+  cerrarFichaCliente();
+  cerrarDrawers();
+  const s = document.getElementById('histSearch');
+  if (s) s.value = c.nombre || '';
+  abrirHistorial(); // renderiza ya con el filtro puesto
 }
 
 // Nuevo documento con los datos de este cliente ya puestos
