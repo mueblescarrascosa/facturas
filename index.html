@@ -1339,7 +1339,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.7';
+const APP_VERSION = 'v5.8';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2954,20 +2954,43 @@ async function _generarPDFreal(accionPDF){
       zebra = 0;
       continue;
     }
-    const rowH=8;
+    // Altura de fila ADAPTATIVA: depende de cuántas líneas ocupe la descripción
+    const anchoDesc = cols.cant - cols.desc - 6;
+    let lineasDesc = [''];
+    if (f && f.tipo === 'linea') {
+      doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+      lineasDesc = doc.splitTextToSize(descConParte(f.l), anchoDesc);
+      if (!lineasDesc.length) lineasDesc = [''];
+    }
+    const alturaTexto = lineasDesc.length * 4.6;      // ~4.6 pt por línea de texto a 10.5pt
+    const rowH = Math.max(8, alturaTexto + 3.5);       // margen arriba/abajo, mínimo 8
+    // Salto de página si la fila no cabe (deja hueco para totales/pie)
+    if (y + rowH > H - 45) {
+      doc.addPage();
+      y = 15;
+      // Repetir la cabecera de columnas en la página nueva
+      fill(navy); doc.rect(ml, y, W-ml-mr, 7, 'F');
+      col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
+      doc.text(T('cantidad'),cols.cant,y+5,{align:'right'}); doc.text(T('precio'),cols.precio,y+5,{align:'right'});
+      doc.text(T('iva'),cols.iva,y+5,{align:'right'}); doc.text(T('importe'),cols.imp,y+5,{align:'right'});
+      y += 7;
+      zebra = 0;
+    }
     if(zebra%2===1){fill([250,251,252]);stroke(borderC);doc.rect(ml,y,W-ml-mr,rowH,'F');}
     stroke(borderC);doc.setLineWidth(0.2);doc.line(ml,y+rowH,W-mr,y+rowH);
     if(f && f.tipo==='linea'){
       const l = f.l;
       col(muted);doc.setFont('courier','normal');doc.setFontSize(9);doc.text(l.cod||'',cols.cod,y+5);
-      col(black);doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.text(descConParte(l),cols.desc,y+5,{maxWidth:cols.cant-cols.desc-6});
+      col(black);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
+      doc.text(lineasDesc,cols.desc,y+5);
       const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=importeLineaNum(l);
       col(black);doc.setFont('courier','normal');doc.setFontSize(9.5);
       if(cant) doc.text(fmtNum(cant),cols.cant,y+5,{align:'right'});
-      if(precio) doc.text(fmt(precio),cols.precio,y+4.5,{align:'right'});
+      if(precio) doc.text(fmt(precio),cols.precio,y+5,{align:'right'});
       const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-      if(imp) doc.text(ivaL+'%',cols.iva,y+4.5,{align:'right'});
-      if(imp) doc.text(fmt(imp),cols.imp,y+4.5,{align:'right'});
+      if(imp) doc.text(ivaL+'%',cols.iva,y+5,{align:'right'});
+      if(imp) doc.text(fmt(imp),cols.imp,y+5,{align:'right'});
     }
     y+=rowH;
     zebra++;
