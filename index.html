@@ -83,6 +83,10 @@
 
   /* LÍNEAS */
   .lineas-header { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 44px 48px 76px 46px; gap:5px; padding:0 0 6px; border-bottom:2px solid var(--navy); }
+  /* Cabecera flotante que aparece al hacer scroll por líneas largas */
+  .lineas-header-flotante { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 44px 48px 76px 46px; gap:5px; padding:8px 0; border-bottom:2px solid var(--navy); background:var(--surface); box-shadow:0 3px 8px rgba(0,0,0,0.10); font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .lineas-header-flotante span:nth-child(4), .lineas-header-flotante span:nth-child(5), .lineas-header-flotante span:nth-child(6), .lineas-header-flotante span:nth-child(8) { text-align:right; }
+  .lineas-header-flotante span:nth-child(7) { text-align:center; }
   .lineas-header span { font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
   .linea-row { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 44px 48px 76px 46px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
   .linea-row input { font-family:var(--sans); font-size:12px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
@@ -100,7 +104,7 @@
   body.modo-parte .campos-parte { display:flex !important; }
   body.dark .dir-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
   /* Barra de acceso rápido: últimos documentos guardados */
-  .acceso-rapido { display:flex; align-items:center; gap:6px; overflow-x:auto; padding:2px 2px 8px; margin:-6px 0 8px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; min-width:0; max-width:100%; }
+  .acceso-rapido { display:flex; align-items:center; gap:7px; overflow-x:auto; padding:8px 10px; margin:0 0 14px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; min-width:0; max-width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; }
   .form-panel { min-width:0; } /* permite que la barra encoja y scrollee en vez de desbordar la página */
   .acceso-rapido::-webkit-scrollbar { height:4px; }
   .acceso-rapido::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:2px; }
@@ -1128,21 +1132,23 @@
     <div>
       <div class="section-label">Líneas</div>
       <button class="btn-add-linea" style="margin-bottom:8px;margin-top:0;border-style:solid;background:var(--green-light);color:var(--green);border-color:var(--green)" onclick="abrirModalArticulos()">📦 Insertar artículo frecuente</button>
-      <div class="lineas-header">
-        <span></span>
-        <span>Código</span><span>Descripción</span>
-        <span style="text-align:right">Cant.</span>
-        <span style="text-align:right">Precio</span>
-        <span style="text-align:right">Dto%</span>
-        <span style="text-align:center">IVA</span>
-        <span style="text-align:right">Importe</span>
-        <span></span>
-      </div>
       <datalist id="articulosDatalist"></datalist>
       <div style="margin-bottom:10px">
         <button id="btnModoParte" onclick="toggleModoParte()" style="font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border-strong);background:transparent;color:var(--text-muted);font-family:var(--sans);font-weight:600;cursor:pointer;transition:all 0.15s">🔖 Modo aseguradora: desactivado</button>
       </div>
-      <div id="lineasContainer"></div>
+      <div class="lineas-wrap">
+        <div class="lineas-header">
+          <span></span>
+          <span>Código</span><span>Descripción</span>
+          <span style="text-align:right">Cant.</span>
+          <span style="text-align:right">Precio</span>
+          <span style="text-align:right">Dto%</span>
+          <span style="text-align:center">IVA</span>
+          <span style="text-align:right">Importe</span>
+          <span></span>
+        </div>
+        <div id="lineasContainer"></div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button class="btn-add-linea" style="flex:1;min-width:140px;font-size:14px;padding:11px" onclick="addLinea()">+ Añadir línea</button>
         <button class="btn-add-bloque" style="flex:1;min-width:180px;margin-top:0" onclick="addBloque()">▭ Añadir título de bloque</button>
@@ -1292,7 +1298,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.2';
+const APP_VERSION = 'v5.4';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1583,6 +1589,8 @@ document.addEventListener('DOMContentLoaded', () => {
   iniciarModoParte();
   // Pintar la barra de acceso rápido con los últimos guardados
   renderAccesoRapido();
+  // Cabecera de columnas flotante al hacer scroll
+  initCabeceraFlotante();
   // Completar el nº de cliente en documentos antiguos (silencioso si no hay nada que hacer)
   migrarNumClienteHistorial();
   // Mostrar versión en configuración
@@ -1853,7 +1861,7 @@ function renderLineas() {
         <div class="m-field-row">
           <div class="m-field">
             <label>Cantidad</label>
-            <input type="number" inputmode="decimal" placeholder="0" value="${l.cant}" min="0" step="0.01" oninput="updateLinea(${l.id},'cant',this.value)">
+            <input type="number" inputmode="decimal" placeholder="0" value="${l.cant}" min="0" step="1" oninput="updateLinea(${l.id},'cant',this.value)">
           </div>
           <div class="m-field">
             <label>Precio (€)</label>
@@ -1897,7 +1905,7 @@ function renderLineas() {
           </div>
           <textarea placeholder="Descripción" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea">${esc(l.desc)}</textarea>
         </div>
-        <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="0.01" oninput="updateLinea(${l.id},'cant',this.value)">
+        <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="1" oninput="updateLinea(${l.id},'cant',this.value)">
         <input type="number" class="num" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
         <input type="number" class="num" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" title="Descuento % solo de esta línea" oninput="updateLinea(${l.id},'dto',this.value)">
         <select class="linea-iva-select" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
@@ -2474,6 +2482,48 @@ function renderAccesoRapido() {
   }).join('');
 }
 
+// ── CABECERA FLOTANTE al hacer scroll por líneas largas (solo escritorio) ─────
+function initCabeceraFlotante() {
+  const panel = document.querySelector('.form-panel');
+  const wrap = document.querySelector('.lineas-wrap');
+  const original = document.querySelector('.lineas-header');
+  if (!panel || !wrap || !original) return;
+
+  let flotante = document.getElementById('lineasHeaderFlotante');
+  if (!flotante) {
+    flotante = document.createElement('div');
+    flotante.id = 'lineasHeaderFlotante';
+    flotante.className = 'lineas-header-flotante';
+    flotante.innerHTML = original.innerHTML;
+    flotante.style.display = 'none';
+    document.body.appendChild(flotante);   // en el body: position:fixed respecto al viewport
+  }
+
+  function actualizar() {
+    if (window.matchMedia('(max-width: 860px)').matches) { flotante.style.display = 'none'; return; }
+    const cont = document.getElementById('lineasContainer');
+    if (!cont || cont.children.length === 0) { flotante.style.display = 'none'; return; }
+    const panelRect = panel.getBoundingClientRect();
+    const origRect = original.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    // Mostrar cuando la cabecera original se ha ido por arriba del panel,
+    // y el bloque de líneas todavía ocupa la zona visible
+    if (origRect.bottom < panelRect.top && wrapRect.bottom > panelRect.top + 44) {
+      flotante.style.position = 'fixed';
+      flotante.style.zIndex = '30';
+      flotante.style.top = panelRect.top + 'px';
+      flotante.style.left = origRect.left + 'px';
+      flotante.style.width = origRect.width + 'px';
+      flotante.style.display = 'grid';
+    } else {
+      flotante.style.display = 'none';
+    }
+  }
+  panel.addEventListener('scroll', actualizar, { passive:true });
+  window.addEventListener('resize', actualizar);
+  window._actualizarCabeceraFlotante = actualizar;
+}
+
 function actualizarBotonGuardar() {
   const btn = document.getElementById('btnGuardar');
   if (!btn) return;
@@ -2513,8 +2563,12 @@ function nuevoDocumento(){
 
 function eliminarDelHistorial(id,e){
   e.stopPropagation();
-  if(!confirm('¿Eliminar este documento del historial?')) return;
+  const d = getHistorial().find(x=>x.id===id);
+  const ref = d ? `${d.tipo||'documento'} ${d.numero||''}`.trim() : 'este documento';
+  const cli = d && d.cliente_nombre ? ` de ${d.cliente_nombre}` : '';
+  if(!confirm(`¿Seguro que quieres eliminar «${ref}»${cli}?\n\nEsta acción no se puede deshacer.`)) return;
   saveHistorial(getHistorial().filter(x=>x.id!==id)); renderHistorial(); renderAccesoRapido();
+  mostrarToast('Documento eliminado');
 }
 
 function poblarAnyosHistorial(h) {
@@ -3369,6 +3423,8 @@ function duplicarDesdeHistorial(id, e) {
   e.stopPropagation();
   const d = getHistorial().find(x=>x.id===id);
   if(!d) return;
+  const ref = `${d.tipo||'documento'} ${d.numero||''}`.trim();
+  if(!confirm(`¿Duplicar «${ref}»?\n\nSe creará una copia nueva (sin número, para que le asignes el siguiente) que podrás editar.`)) return;
   const nuevo = {...d, id: Date.now(), guardadoEn: new Date().toISOString(), numero: '', estado: 'PENDIENTE'};
   nuevo.imagenes = (d.imagenes||[]).map(x=>({...x}));
   nuevo.lineas = (d.lineas||[]).map(x=>({...x}));
@@ -3376,6 +3432,7 @@ function duplicarDesdeHistorial(id, e) {
   h.unshift(nuevo);
   saveHistorial(h);
   renderHistorial();
+  renderAccesoRapido();
   mostrarToast('✓ Documento duplicado', true);
 }
 
