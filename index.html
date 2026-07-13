@@ -36,6 +36,36 @@
   body.dark .field-group input, body.dark .field-group textarea,
   body.dark .linea-row input, body.dark .linea-row select { background:#262D35; color:#E8ECEF; }
   body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; line-height:1.5; transition:background 0.2s, color 0.2s; }
+  /* Pantallas grandes (PC): aprovechar el ancho y agrandar la letra de toda la interfaz.
+     Al subir el font-size del body, todo lo definido en em/rem crece; los tamaños en px
+     de cada control se re-escalan más abajo con reglas específicas. */
+  @media (min-width: 1200px) {
+    .field-group input, .field-group textarea { font-size:15px; padding:9px 12px; }
+    .field-group label { font-size:13px; }
+    .section-label { font-size:13px; }
+    .linea-row input, .linea-row .desc-textarea { font-size:14px; }
+    .lineas-header, .lineas-header-flotante { font-size:12px; }
+    .tipo-btn { font-size:14px; padding:8px 18px; }
+    .estado-btn { font-size:13px; }
+    .btn-header { font-size:14px; padding:9px 16px; }
+    .ar-chip { font-size:13px; padding:7px 13px; }
+    .hist-item-nombre, .cli-item-nombre { font-size:16px; }
+    .total-final .total-valor, .total-row-final { font-size:19px; }
+  }
+  @media (min-width: 1600px) {
+    body { font-size:16px; }
+    .field-group input, .field-group textarea { font-size:17px; padding:11px 14px; }
+    .field-group label { font-size:14px; }
+    .section-label { font-size:14px; }
+    .linea-row input, .linea-row .desc-textarea { font-size:16px; }
+    .lineas-header, .lineas-header-flotante { font-size:13px; }
+    .tipo-btn { font-size:15px; padding:9px 20px; }
+    .estado-btn { font-size:14px; }
+    .btn-header { font-size:15px; }
+    .ar-chip { font-size:14px; }
+    .hist-item-nombre, .cli-item-nombre { font-size:18px; }
+    .total-final .total-valor, .total-row-final { font-size:21px; }
+  }
 
   /* HEADER */
   .app-header { background:var(--navy); color:white; padding:0 16px; height:52px; display:flex; align-items:center; gap:14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
@@ -67,7 +97,7 @@
 
   /* FORM PANEL */
   .form-panel { background:var(--surface); overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:24px; align-items:center; }
-  .form-panel > * { width:100%; max-width:880px; }
+  .form-panel > * { width:100%; max-width:1100px; }
   .section-label { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; }
   .tipo-selector { display:flex; gap:8px; flex-wrap:wrap; }
   .tipo-btn { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border-strong); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
@@ -385,7 +415,7 @@
   .app-body.preview-hidden { grid-template-columns:1fr; }
   .app-body.preview-hidden .preview-panel { display:none; }
   .app-body.preview-hidden .form-panel { align-items:center; }
-  .app-body.preview-hidden .form-panel > * { width:100%; max-width:820px; }
+  .app-body.preview-hidden .form-panel > * { width:100%; max-width:1200px; }
   /* La barra de acceso rápido ocupa todo el ancho del panel, no el max-width del contenido */
   .form-panel > .acceso-rapido,
   .app-body.preview-hidden .form-panel > .acceso-rapido { max-width:100%; }
@@ -444,10 +474,8 @@
     .logo-text { font-size:14px; }
     .logo-text #headerVersion { font-size:11px; }
     .header-sep { display:none; }
-    .header-actions { width:100%; overflow-x:auto; flex-wrap:nowrap; gap:6px; padding:4px 0 2px; -webkit-overflow-scrolling:touch; scrollbar-width:thin; flex:none; }
-    .header-actions::-webkit-scrollbar { height:3px; }
-    .header-actions::-webkit-scrollbar-thumb { background:#3A5470; border-radius:2px; }
-    .btn-header { font-size:13px; padding:9px 13px; flex-shrink:0; }
+    .header-actions { width:100%; overflow-x:visible; flex-wrap:wrap; gap:7px; padding:4px 0 2px; flex:none; justify-content:center; }
+    .btn-header { font-size:13px; padding:9px 13px; flex:0 0 auto; }
 
     /* Campos más grandes para el dedo */
     .field-group input, .field-group textarea { font-size:16px; padding:11px 12px; }
@@ -1311,7 +1339,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.5';
+const APP_VERSION = 'v5.7';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2795,10 +2823,10 @@ function generarPDF(accionPDF) {
     const msg = 'El documento está ' + avisos.join(', ') + '.\n\n¿Generar el PDF de todos modos?';
     if (!confirm(msg)) return;
   }
-  return _generarPDFreal();
+  return _generarPDFreal(accionPDF);
 }
 
-async function _generarPDFreal(){
+async function _generarPDFreal(accionPDF){
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const W=210,H=297,ml=15,mr=15;
@@ -2873,22 +2901,22 @@ async function _generarPDFreal(){
   const cY=37;
   fill(lightgray); stroke(borderC); doc.setLineWidth(0.3); doc.rect(ml,cY,90,26,'FD');
   col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(T('cliente'),ml+4,cY+5);
-  col(black); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  col(black); doc.setFont('helvetica','bold'); doc.setFontSize(11);
   doc.text(document.getElementById('cliente_nombre').value||'—',ml+4,cY+11,{maxWidth:84});
-  doc.setFont('helvetica','normal'); doc.setFontSize(9); col(muted);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); col(muted);
   const dir=document.getElementById('cliente_dir').value,pob=document.getElementById('cliente_pob').value,nif=document.getElementById('cliente_nif').value;
   if(dir) doc.text(dir,ml+4,cY+17,{maxWidth:84});
   if(pob) doc.text(pob,ml+4,cY+22,{maxWidth:84});
   fill(lightgray); doc.rect(ml+94,cY,56,26,'FD');
   col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(T('nifRef'),ml+98,cY+5);
-  col(black); doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.text(nif||'—',ml+98,cY+13);
-  doc.setFontSize(9); col(muted); if(ref) doc.text(ref,ml+98,cY+19,{maxWidth:50});
+  col(black); doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.text(nif||'—',ml+98,cY+13);
+  doc.setFontSize(10); col(muted); if(ref) doc.text(ref,ml+98,cY+19,{maxWidth:50});
 
   y=cY+32;
   fill(navy); doc.rect(ml,y,W-ml-mr,7,'F');
   col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
   const cols={cod:ml+2,desc:ml+22,cant:W-mr-74,precio:W-mr-52,iva:W-mr-30,imp:W-mr-2};
-  doc.text(T('codigo'),cols.cod,y+4.8); doc.text(T('descripcion'),cols.desc,y+4.8);
+  doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
   doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'}); doc.text(T('precio'),cols.precio,y+4.8,{align:'right'}); doc.text(T('iva'),cols.iva,y+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,y+4.8,{align:'right'});
   y+=7;
 
@@ -2926,16 +2954,16 @@ async function _generarPDFreal(){
       zebra = 0;
       continue;
     }
-    const rowH=7;
+    const rowH=8;
     if(zebra%2===1){fill([250,251,252]);stroke(borderC);doc.rect(ml,y,W-ml-mr,rowH,'F');}
     stroke(borderC);doc.setLineWidth(0.2);doc.line(ml,y+rowH,W-mr,y+rowH);
     if(f && f.tipo==='linea'){
       const l = f.l;
-      col(muted);doc.setFont('courier','normal');doc.setFontSize(8);doc.text(l.cod||'',cols.cod,y+4.5);
-      col(black);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(descConParte(l),cols.desc,y+4.5,{maxWidth:cols.cant-cols.desc-6});
+      col(muted);doc.setFont('courier','normal');doc.setFontSize(9);doc.text(l.cod||'',cols.cod,y+5);
+      col(black);doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.text(descConParte(l),cols.desc,y+5,{maxWidth:cols.cant-cols.desc-6});
       const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=importeLineaNum(l);
-      col(black);doc.setFont('courier','normal');doc.setFontSize(8.5);
-      if(cant) doc.text(fmtNum(cant),cols.cant,y+4.5,{align:'right'});
+      col(black);doc.setFont('courier','normal');doc.setFontSize(9.5);
+      if(cant) doc.text(fmtNum(cant),cols.cant,y+5,{align:'right'});
       if(precio) doc.text(fmt(precio),cols.precio,y+4.5,{align:'right'});
       const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
       if(imp) doc.text(ivaL+'%',cols.iva,y+4.5,{align:'right'});
@@ -2950,7 +2978,7 @@ async function _generarPDFreal(){
   const drawTotRow=(label,val,grand=false)=>{
     if(grand){fill(navy);doc.rect(totLX-4,y-3.5,totX-totLX+6,totRowH+1,'F');col([255,255,255]);}
     else col(muted);
-    doc.setFont('helvetica',grand?'bold':'normal');doc.setFontSize(grand?10:9);
+    doc.setFont('helvetica',grand?'bold':'normal');doc.setFontSize(grand?11:10);
     doc.text(label,totLX,y+1.5);
     doc.setFont('courier',grand?'bold':'normal');doc.text(val,totX,y+1.5,{align:'right'});
     if(!grand) col(black); y+=totRowH;
@@ -2984,8 +3012,8 @@ async function _generarPDFreal(){
   col(black);
 
   const pago=document.getElementById('forma_pago').value,obs=document.getElementById('observaciones').value;
-  if(pago){stroke(borderC);doc.setLineWidth(0.3);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(T('formaPago'),ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(9);const pl=doc.splitTextToSize(pago,W-ml-mr);doc.text(pl,ml,y);y+=pl.length*4+3;}
-  if(obs){stroke(borderC);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('OBSERVACIONES',ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(9);const ol=doc.splitTextToSize(obs,W-ml-mr);doc.text(ol,ml,y);}
+  if(pago){stroke(borderC);doc.setLineWidth(0.3);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(T('formaPago'),ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(10);const pl=doc.splitTextToSize(pago,W-ml-mr);doc.text(pl,ml,y);y+=pl.length*4+3;}
+  if(obs){stroke(borderC);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('OBSERVACIONES',ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(10);const ol=doc.splitTextToSize(obs,W-ml-mr);doc.text(ol,ml,y);}
 
   const legalTexto=document.getElementById('texto_legal').value||LEGAL_DEFAULT;
   const footerY=H-18;stroke(borderC);doc.setLineWidth(0.2);doc.line(ml,footerY,W-mr,footerY);
