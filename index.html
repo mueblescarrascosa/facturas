@@ -1339,7 +1339,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.11';
+const APP_VERSION = 'v5.12';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2826,11 +2826,23 @@ function generarPDF(accionPDF) {
   return _generarPDFreal(accionPDF);
 }
 
+// Sustituye caracteres que la fuente estándar del PDF (Helvetica) no sabe dibujar,
+// como ≥ ≤ o comillas tipográficas, por equivalentes seguros. Si no, jsPDF puede
+// medirlos mal (ancho 0) y acabar estirando la línea.
+function saneaParaPDF(s) {
+  return (s || '')
+    .replace(/≥/g, '>=').replace(/≤/g, '<=')
+    .replace(/[""]/g, '"').replace(/['']/g, "'")
+    .replace(/[—–]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/[\u00A0\u202F]/g, ' ');
+}
+
 // Parte un texto en líneas que quepan en 'ancho', midiendo cada palabra con la fuente
 // ACTUAL del doc. No mete espacios entre letras (evita el "texto estirado" de jsPDF).
 // Las palabras más anchas que la columna se cortan por caracteres.
 function envolverTexto(doc, texto, ancho) {
-  texto = (texto || '').replace(/\s+/g, ' ').trim();
+  texto = saneaParaPDF(texto).replace(/\s+/g, ' ').trim();
   if (!texto) return [''];
   const lineas = [];
   let linea = '';
