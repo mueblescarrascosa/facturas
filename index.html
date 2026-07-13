@@ -104,7 +104,10 @@
   body.modo-parte .campos-parte { display:flex !important; }
   body.dark .dir-parte-input:not(:placeholder-shown) { background:#0C2A3A; color:#7DD3FC; }
   /* Barra de acceso rápido: últimos documentos guardados */
-  .acceso-rapido { display:flex; align-items:center; gap:7px; overflow-x:auto; padding:8px 10px; margin:0 0 14px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; min-width:0; max-width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; }
+  .acceso-rapido { display:flex; align-items:center; gap:7px; overflow-x:auto; overflow-y:hidden; padding:8px 10px; margin:0 0 14px; scrollbar-width:thin; -webkit-overflow-scrolling:touch; min-width:0; max-width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px; flex:0 0 auto; align-self:stretch; box-sizing:border-box; }
+  .acceso-rapido::-webkit-scrollbar { height:5px; }
+  .acceso-rapido::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:3px; }
+  .ar-chip { flex:0 0 auto; white-space:nowrap; }
   .form-panel { min-width:0; } /* permite que la barra encoja y scrollee en vez de desbordar la página */
   .acceso-rapido::-webkit-scrollbar { height:4px; }
   .acceso-rapido::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:2px; }
