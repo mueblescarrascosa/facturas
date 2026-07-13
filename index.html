@@ -1339,7 +1339,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.9';
+const APP_VERSION = 'v5.10';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2959,7 +2959,19 @@ async function _generarPDFreal(accionPDF){
     let lineasDesc = [''];
     if (f && f.tipo === 'linea') {
       doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
-      lineasDesc = doc.splitTextToSize(descConParte(f.l), anchoDesc);
+      // Trocear palabras más anchas que la columna: si no, jsPDF estira las letras
+      // (mete espacios entre caracteres) para rellenar el ancho. Insertamos cortes.
+      const partirLargas = (txt) => (txt||'').split(' ').map(pal => {
+        if (doc.getTextWidth(pal) <= anchoDesc) return pal;
+        // Cortar la palabra en trozos que quepan
+        let out = '', actual = '';
+        for (const ch of pal) {
+          if (doc.getTextWidth(actual + ch) > anchoDesc && actual) { out += actual + ' '; actual = ch; }
+          else actual += ch;
+        }
+        return out + actual;
+      }).join(' ');
+      lineasDesc = doc.splitTextToSize(partirLargas(descConParte(f.l)), anchoDesc);
       if (!lineasDesc.length) lineasDesc = [''];
     }
     const alturaTexto = lineasDesc.length * 4.6;      // ~4.6 pt por línea de texto a 10.5pt
@@ -2995,7 +3007,10 @@ async function _generarPDFreal(accionPDF){
       const l = f.l;
       col(muted);doc.setFont('courier','normal');doc.setFontSize(9);doc.text(l.cod||'',cols.cod,y+5);
       col(black);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
-      doc.text(lineasDesc,cols.desc,y+5);
+      // Dibujar cada línea alineada a la izquierda (evita que jsPDF estire las letras)
+      lineasDesc.forEach((ln, idx) => {
+        doc.text(ln, cols.desc, y + 5 + idx * 4.6, { align: 'left' });
+      });
       const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=importeLineaNum(l);
       col(black);doc.setFont('courier','normal');doc.setFontSize(9.5);
       if(cant) doc.text(fmtNum(cant),cols.cant,y+5,{align:'right'});
