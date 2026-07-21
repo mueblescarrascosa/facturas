@@ -1339,7 +1339,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.15';
+const APP_VERSION = 'v5.16';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2451,13 +2451,16 @@ function cargarEstado(estado){
   setEstado(estado.estado||'PENDIENTE');
   document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.toggle('active',b.dataset.tipo===tipoActual));
   ['numero','fecha','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','cliente_email','descuento','iva_pct','forma_pago','observaciones'].forEach(id=>{document.getElementById(id).value=estado[id]||'';});
-  // Si el documento cargado tiene referencias de parte, mostrar los campos automáticamente
-  // (para que no queden ocultos sin que el usuario se dé cuenta de que existen)
-  if ((estado.lineas||[]).some(l => (l.refParte||'').trim() || (l.dirParte||'').trim())) {
-    if (!document.body.classList.contains('modo-parte')) {
-      document.body.classList.add('modo-parte');
-      if (typeof actualizarBotonModoParte === 'function') actualizarBotonModoParte();
-    }
+  // Ajustar el modo aseguradora al documento que se carga:
+  //  - si TIENE referencias de parte -> se activa (para que no queden ocultas)
+  //  - si NO las tiene -> se vuelve a tu preferencia guardada (normalmente, desactivado),
+  //    para que no se quede pegado del documento anterior.
+  {
+    const tieneRefs = (estado.lineas||[]).some(l => (l.refParte||'').trim() || (l.dirParte||'').trim());
+    const preferencia = localStorage.getItem('mc_modo_parte') === '1';
+    const debeEstarActivo = tieneRefs || preferencia;
+    document.body.classList.toggle('modo-parte', debeEstarActivo);
+    if (typeof actualizarBotonModoParte === 'function') actualizarBotonModoParte();
   }
   document.getElementById('idioma_pdf').value=estado.idioma_pdf||'es';
   if(!estado.iva_pct) document.getElementById('iva_pct').value='21';
@@ -2512,7 +2515,7 @@ function migrarNumClienteHistorial() {
 function renderAccesoRapido() {
   const cont = document.getElementById('accesoRapido');
   if (!cont) return;
-  const h = getHistorial().slice(0, 6);
+  const h = getHistorial().slice(0, 10);
   if (!h.length) { cont.style.display = 'none'; cont.innerHTML=''; return; }
   cont.style.display = 'flex';
   cont.innerHTML = '<span class="ar-label" title="Últimos guardados">🕐</span>' + h.map(d => {
