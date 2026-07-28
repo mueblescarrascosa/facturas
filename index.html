@@ -121,9 +121,9 @@
   .lineas-header-flotante span:nth-child(7) { text-align:center; }
   .lineas-header span { font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
   .linea-row { display:grid; grid-template-columns:18px 50px 1fr 52px 72px 44px 48px 76px 46px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
-  .linea-row input { font-family:var(--sans); font-size:12px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
+  .linea-row input { font-family:var(--sans); font-size:13.5px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
   .linea-row input:focus { border-color:var(--green); background:white; }
-  .linea-row input.num { font-family:var(--mono); font-size:11px; text-align:right; }
+  .linea-row input.num { font-family:var(--mono); font-size:13px; text-align:right; letter-spacing:-0.2px; }
   .linea-row .desc-textarea { font-family:var(--sans); font-size:12px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); resize:none; overflow:hidden; line-height:1.35; min-height:29px; }
   .linea-row .desc-textarea:focus { border-color:var(--green); background:white; }
   .ref-parte-input { font-family:var(--mono); font-size:11px; background:transparent; border:1px dashed var(--border-strong); border-radius:4px; padding:3px 7px; outline:none; width:100%; color:var(--text); transition:all 0.15s; }
@@ -1174,6 +1174,7 @@
       <div class="section-label">Líneas</div>
       <button class="btn-add-linea" style="margin-bottom:8px;margin-top:0;border-style:solid;background:var(--green-light);color:var(--green);border-color:var(--green)" onclick="abrirModalArticulos()">📦 Insertar artículo frecuente</button>
       <datalist id="articulosDatalist"></datalist>
+      <datalist id="codigosDatalist"></datalist>
       <div style="margin-bottom:10px">
         <button id="btnModoParte" onclick="toggleModoParte()" style="font-size:12px;padding:7px 14px;border-radius:20px;border:1.5px solid var(--border-strong);background:transparent;color:var(--text-muted);font-family:var(--sans);font-weight:600;cursor:pointer;transition:all 0.15s">🔖 Modo aseguradora: desactivado</button>
       </div>
@@ -1339,7 +1340,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.16';
+const APP_VERSION = 'v5.17';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1897,7 +1898,7 @@ function renderLineas() {
         </div>
         <div class="m-field">
           <label>Código (opcional)</label>
-          <input type="text" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
+          <input type="text" list="codigosDatalist" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value); autocompletarPorCodigo(${l.id},this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
         </div>
         <div class="m-field-row">
           <div class="m-field">
@@ -1936,7 +1937,7 @@ function renderLineas() {
              draggable="true"
              ondragstart="lineaDragStart(event,${l.id})"
              ondragend="lineaDragEnd()">⠿</div>
-        <input type="text" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
+        <input type="text" list="codigosDatalist" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value); autocompletarPorCodigo(${l.id},this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
         <div style="display:flex;flex-direction:column;gap:3px">
           <div class="campos-parte">
             <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
@@ -2515,7 +2516,15 @@ function migrarNumClienteHistorial() {
 function renderAccesoRapido() {
   const cont = document.getElementById('accesoRapido');
   if (!cont) return;
-  const h = getHistorial().slice(0, 10);
+  // Ordenar por lo último ABIERTO/tocado; los no abiertos, por su orden de guardado
+  let abiertos = {};
+  try { abiertos = JSON.parse(localStorage.getItem('mc_ultimos_abiertos') || '{}'); } catch(e){}
+  const todos = getHistorial();
+  const h = [...todos].sort((a, b) => {
+    const ta = abiertos[a.id] || 0, tb = abiertos[b.id] || 0;
+    if (ta !== tb) return tb - ta;              // más recientemente abierto primero
+    return todos.indexOf(a) - todos.indexOf(b); // si ninguno se abrió, orden original
+  }).slice(0, 10);
   if (!h.length) { cont.style.display = 'none'; cont.innerHTML=''; return; }
   cont.style.display = 'flex';
   cont.innerHTML = '<span class="ar-label" title="Últimos guardados">🕐</span>' + h.map(d => {
@@ -2726,6 +2735,12 @@ function renderHistorial(){
   }).join('');
 }
 function cargarDesdeHistorial(id){
+  // Registrar que este documento se acaba de abrir (para ordenar la barra de recientes)
+  try {
+    const abiertos = JSON.parse(localStorage.getItem('mc_ultimos_abiertos') || '{}');
+    abiertos[id] = Date.now();
+    localStorage.setItem('mc_ultimos_abiertos', JSON.stringify(abiertos));
+  } catch(e){}
   const d = getHistorial().find(x=>x.id===id);
   if(d) cargarEstado(d);
 }
@@ -4794,10 +4809,19 @@ function copiarFallback(texto) {
 // ── AUTOCOMPLETAR ARTÍCULOS EN LÍNEAS ─────────────────────────────────────────
 function actualizarDatalistArticulos() {
   const dl = document.getElementById('articulosDatalist');
-  if (!dl) return;
-  dl.innerHTML = (articulos||[]).map(a =>
-    `<option value="${esc(a.desc)}">${a.precio?fmt(parseFloat(a.precio)):''}</option>`
-  ).join('');
+  if (dl) {
+    dl.innerHTML = (articulos||[]).map(a =>
+      `<option value="${esc(a.desc)}">${a.precio?fmt(parseFloat(a.precio)):''}</option>`
+    ).join('');
+  }
+  // Lista de CÓDIGOS para el campo código (solo los que tienen código)
+  const dlc = document.getElementById('codigosDatalist');
+  if (dlc) {
+    dlc.innerHTML = (articulos||[])
+      .filter(a => (a.cod||'').trim())
+      .map(a => `<option value="${esc(a.cod)}">${esc(a.desc||'')}</option>`)
+      .join('');
+  }
 }
 // Cuando el usuario elige (o escribe exactamente) un artículo, rellenar precio/código/IVA
 function autocompletarArticulo(lineaId, valor) {
