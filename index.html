@@ -1340,7 +1340,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.18';
+const APP_VERSION = 'v5.23';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2978,7 +2978,7 @@ async function _generarPDFreal(accionPDF){
   y=cY+32;
   fill(navy); doc.rect(ml,y,W-ml-mr,7,'F');
   col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  const cols={cod:ml+2,desc:ml+22,cant:W-mr-74,precio:W-mr-52,iva:W-mr-30,imp:W-mr-2};
+  const cols={cod:ml+2,desc:ml+21,cant:W-mr-86,precio:W-mr-58,iva:W-mr-32,imp:W-mr-2};
   doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
   doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'}); doc.text(T('precio'),cols.precio,y+4.8,{align:'right'}); doc.text(T('iva'),cols.iva,y+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,y+4.8,{align:'right'});
   y+=7;
@@ -3067,19 +3067,33 @@ async function _generarPDFreal(accionPDF){
         doc.text(ln, cols.desc, y + 5 + idx * 4.6, { align: 'left' });
       });
       const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=importeLineaNum(l);
-      col(black);doc.setFont('courier','normal');doc.setFontSize(9.5);
-      if(cant) doc.text(fmtNum(cant),cols.cant,y+5,{align:'right'});
-      if(precio) doc.text(fmt(precio),cols.precio,y+5,{align:'right'});
+      col(black);doc.setFont('courier','normal');
+      // Dibuja un número alineado a la derecha, encogiendo la letra solo si no cabe en 'ancho'
+      const numDer = (txt, xDer, ancho) => {
+        let fs = 9.5;
+        doc.setFontSize(fs);
+        while (doc.getTextWidth(txt) > ancho && fs > 4.5) { fs -= 0.5; doc.setFontSize(fs); }
+        doc.text(txt, xDer, y+5, {align:'right'});
+        doc.setFontSize(9.5);
+      };
+      // Ancho disponible para cada número = separación con la columna de su izquierda, con holgura.
+      // (cant tiene desde la descripción; el resto, desde la columna numérica anterior)
+      const anchoCant = 26;
+      const anchoPrecio = (cols.precio - cols.cant) + 18;
+      const anchoIva = 16;
+      const anchoImp = (cols.imp - cols.iva) + 24;
+      if(cant) numDer(fmtNum(cant), cols.cant, anchoCant);
+      if(precio) numDer(fmt(precio), cols.precio, anchoPrecio);
       const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-      if(imp) doc.text(ivaL+'%',cols.iva,y+5,{align:'right'});
-      if(imp) doc.text(fmt(imp),cols.imp,y+5,{align:'right'});
+      if(imp) numDer(ivaL+'%', cols.iva, anchoIva);
+      if(imp) numDer(fmt(imp), cols.imp, anchoImp);
     }
     y+=rowH;
     zebra++;
   }
   y+=4;
 
-  const t=calcTotales(),totX=W-mr,totLX=totX-70,totRowH=5.5;
+  const t=calcTotales(),totX=W-mr,totLX=totX-76,totRowH=5.5;
   const drawTotRow=(label,val,grand=false)=>{
     if(grand){fill(navy);doc.rect(totLX-4,y-3.5,totX-totLX+6,totRowH+1,'F');col([255,255,255]);}
     else col(muted);
@@ -3939,6 +3953,22 @@ function saveClientes(arr) {
   localStorage.setItem(CLIENTES_KEY, JSON.stringify(arr));
 }
 
+// Busca el primer número de cliente LIBRE: rellena huecos entre los existentes
+// (si falta el 5 entre 4 y 6, devuelve 5); si no hay huecos, sigue desde el último.
+// Solo considera números puramente numéricos (ignora códigos con letras).
+function siguienteNumeroCliente(clientes) {
+  const usados = new Set();
+  (clientes || []).forEach(c => {
+    const n = parseInt((c.num || '').toString().trim(), 10);
+    if (!isNaN(n) && n > 0 && String(n) === (c.num || '').toString().trim()) usados.add(n);
+  });
+  if (!usados.size) return '1';
+  // Buscar el primer hueco empezando en 1
+  let n = 1;
+  while (usados.has(n)) n++;
+  return String(n);
+}
+
 function guardarClienteActual() {
   const nombre = document.getElementById('cliente_nombre').value.trim();
   if (!nombre) { mostrarToast('Escribe primero el nombre del cliente'); return; }
@@ -3953,16 +3983,43 @@ function guardarClienteActual() {
     email: document.getElementById('cliente_email').value.trim()
   };
   const clientes = getClientes();
-  // Buscar si ya existe: por Nº cliente, luego NIF, luego nombre
   const idx = indiceClienteExistente(clientes, cliente);
   if (idx >= 0) {
-    clientes[idx] = {...clientes[idx], ...cliente, id: clientes[idx].id};
+    const existente = clientes[idx];
+    // ¿El cliente que vamos a sobrescribir es claramente OTRO distinto?
+    // (coincide por número o NIF, pero el nombre no coincide, o el NIF es distinto)
+    const mismoNombre = (existente.nombre||'').trim().toLowerCase() === (cliente.nombre||'').trim().toLowerCase();
+    const nifNuevo = (cliente.nif||'').trim().replace(/[\s.-]/g,'').toLowerCase();
+    const nifViejo = (existente.nif||'').trim().replace(/[\s.-]/g,'').toLowerCase();
+    const nifDistinto = nifNuevo && nifViejo && nifNuevo !== nifViejo;
+    if (!mismoNombre || nifDistinto) {
+      const mismoNum = cliente.num && (existente.num||'').trim() === cliente.num.trim();
+      const motivo = mismoNum ? `el nº de cliente ${cliente.num}`
+        : (nifNuevo && nifViejo === nifNuevo ? `el NIF ${cliente.nif}` : 'el nombre');
+      const ok = confirm(
+        `Ya hay un cliente con ${motivo}:\n\n` +
+        `   ${existente.nombre}${existente.nif?' · '+existente.nif:''}${existente.num?' · Nº'+existente.num:''}\n\n` +
+        `Si continúas, SE REEMPLAZARÁN sus datos por estos:\n\n` +
+        `   ${cliente.nombre}${cliente.nif?' · '+cliente.nif:''}\n\n` +
+        `¿Reemplazar ese cliente?\n(Cancela si querías crear uno nuevo — ponle otro número o déjalo vacío.)`
+      );
+      if (!ok) return;
+    }
+    const numPrevio = (existente.num || '').trim();
+    if (!cliente.num && numPrevio) cliente.num = numPrevio;
+    clientes[idx] = {...existente, ...cliente, id: existente.id};
+    saveClientes(clientes);
+    document.getElementById('cliente_num').value = clientes[idx].num || '';
     mostrarToast('✓ Cliente actualizado en la agenda', true);
   } else {
+    if (!cliente.num) {
+      cliente.num = siguienteNumeroCliente(clientes);
+      document.getElementById('cliente_num').value = cliente.num;
+    }
     clientes.unshift(cliente);
-    mostrarToast('✓ Cliente guardado en la agenda', true);
+    saveClientes(clientes);
+    mostrarToast(`✓ Cliente guardado (Nº ${cliente.num})`, true);
   }
-  saveClientes(clientes);
 }
 
 // Busca si un cliente ya existe en la lista, por orden de fiabilidad:
