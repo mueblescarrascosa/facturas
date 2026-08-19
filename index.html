@@ -1340,7 +1340,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.23';
+const APP_VERSION = 'v5.25';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -5148,7 +5148,20 @@ function importarExcel(event) {
       try {
         const data = new Uint8Array(e.target.result);
         const wb = XLSX.read(data, { type: 'array' });
-        const doc = leerHojaPresupuesto(wb, file.name);
+        // Detectar export MASIVO de FacturaScripts (varias hojas 'lineas-N')
+        const docsFS = leerFacturaScriptsMultiple(wb, file.name);
+        if (docsFS && docsFS.length) {
+          docsFS.forEach(d => {
+            if (!d.fecha && file.lastModified) d.fecha = new Date(file.lastModified).toISOString().split('T')[0];
+            _excelPendientes.push(d);
+            leidos++;
+          });
+          pendientesArchivos--;
+          if (pendientesArchivos === 0) mostrarResumenImportExcel(leidos, errores);
+          return;
+        }
+        // Detectar si es un export de FacturaScripts (uno solo); si no, formato propio
+        const doc = leerHojaFacturaScripts(wb, file.name) || leerHojaPresupuesto(wb, file.name);
         if (doc && doc.lineas.length > 0) {
           // Prioridad de fecha: 1) la escrita en el Excel (celda), 2) la de modificación del archivo
           if (!doc.fecha && file.lastModified) {
@@ -5175,6 +5188,183 @@ function importarExcel(event) {
     reader.readAsArrayBuffer(file);
   });
   event.target.value = '';
+}
+
+// Lee un Excel de FacturaScripts con MÚLTIPLES presupuestos (exportación masiva):
+// trae varias hojas 'lineas', 'lineas-2', ... emparejadas con hojas de cabecera
+// 'preXXXX' por el campo idpresupuesto. Devuelve un array de documentos, o null.
+function leerFacturaScriptsMultiple(wb, nombreArchivo) {
+  const nombres = wb.SheetNames || [];
+  const hojasLineas = nombres.filter(n => /^l[ií]neas?(-\d+)?$/i.test(n));
+  // Solo tratamos como "múltiple" si hay 2 o más hojas de líneas
+  if (hojasLineas.length < 2) return null;
+
+  const filasDe = (nombre) => {
+    const ws = wb.Sheets[nombre];
+    if (!ws) return [];
+    return XLSX.utils.sheet_to_json(ws, { defval: '' });
+  };
+  const campo = (obj, nombre) => {
+    const k = Object.keys(obj).find(kk => kk.toLowerCase() === nombre);
+    return k ? obj[k] : '';
+  };
+
+  // Indexar cabeceras por idpresupuesto
+  const hojasCab = nombres.filter(n => !/^l[ií]neas?(-\d+)?$/i.test(n));
+  const cabPorId = {};
+  hojasCab.forEach(hc => {
+    const filas = filasDe(hc);
+    if (filas.length) {
+      const idp = String(campo(filas[0], 'idpresupuesto') || '').trim();
+      if (idp) cabPorId[idp] = filas[0];
+    }
+  });
+
+  const docs = [];
+  hojasLineas.forEach(hl => {
+    const filas = filasDe(hl);
+    if (!filas.length) return;
+    // Verificar que es FacturaScripts
+    const cols = Object.keys(filas[0]).map(k => k.toLowerCase());
+    if (!(cols.includes('referencia') && cols.includes('descripcion') && cols.includes('pvpunitario'))) return;
+
+    const idp = String(campo(filas[0], 'idpresupuesto') || '').trim();
+    const cab = cabPorId[idp] || {};
+    const campoCab = (nombre) => {
+      const k = Object.keys(cab).find(kk => kk.toLowerCase() === nombre);
+      return k ? String(cab[k]).trim() : '';
+    };
+
+    // Líneas
+    const lineas = [];
+    let idc = 0;
+    filas.forEach(f => {
+      const desc = String(campo(f, 'descripcion') || '').trim();
+      const precioRaw = campo(f, 'pvpunitario') !== '' ? campo(f, 'pvpunitario') : campo(f, 'pvpsindto');
+      if (!desc && !precioRaw) return;
+      const cant = campo(f, 'cantidad');
+      const ivaRaw = campo(f, 'iva');
+      const dtoRaw = campo(f, 'dtopor');
+      lineas.push({
+        id: idc++, tipo: 'linea',
+        cod: String(campo(f, 'referencia') || '').trim(),
+        desc: desc,
+        cant: (cant === '' || cant === null) ? '' : String(cant).replace('.', ','),
+        precio: precioRaw === '' ? '' : String(Math.round(parseFloat(precioRaw) * 100) / 100).replace('.', ','),
+        dto: (dtoRaw && parseFloat(dtoRaw) > 0) ? String(dtoRaw).replace('.', ',') : '',
+        iva: (ivaRaw === '' || ivaRaw === null) ? 21 : parseFloat(ivaRaw)
+      });
+    });
+    if (!lineas.length) return;
+
+    // Fecha DD-MM-AAAA → AAAA-MM-DD
+    let fecha = '';
+    const mFecha = campoCab('fecha').match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (mFecha) fecha = `${mFecha[3]}-${mFecha[2]}-${mFecha[1]}`;
+
+    docs.push({
+      tipo: 'PRESUPUESTO',
+      numero: campoCab('codigo') || campoCab('numero') || '',
+      fecha: fecha,
+      cliente_nombre: campoCab('nombrecliente'),
+      cliente_dir: campoCab('direccion'),
+      cliente_pob: campoCab('ciudad'),
+      cliente_nif: campoCab('cifnif'),
+      cliente_tel: '',
+      referencia: '',
+      lineas: lineas,
+      _origen: 'FacturaScripts'
+    });
+  });
+
+  return docs.length ? docs : null;
+}
+
+// Lee un Excel exportado por FacturaScripts. Devuelve un documento con la misma
+// estructura que leerHojaPresupuesto, o null si el Excel NO es de FacturaScripts.
+// FacturaScripts trae 2 hojas: "Líneas" (con columnas referencia, descripcion,
+// cantidad, pvpunitario, iva...) y otra con la cabecera (cifnif, nombrecliente,
+// direccion, ciudad, codigo, fecha, total...).
+function leerHojaFacturaScripts(wb, nombreArchivo) {
+  const nombres = wb.SheetNames || [];
+  // La hoja de líneas suele llamarse "Líneas" / "Lineas"
+  let hojaLineas = nombres.find(n => /l[ií]neas?/i.test(n));
+  if (!hojaLineas) hojaLineas = nombres[0];
+  const ws = wb.Sheets[hojaLineas];
+  if (!ws) return null;
+  const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!filas.length) return null;
+  // Comprobar que es FacturaScripts: debe tener las columnas típicas
+  const cols = Object.keys(filas[0]).map(k => k.toLowerCase());
+  const esFS = cols.includes('referencia') && cols.includes('descripcion') &&
+               (cols.includes('pvpunitario') || cols.includes('pvpsindto')) && cols.includes('cantidad');
+  if (!esFS) return null;
+
+  // Acceso a un campo por nombre (insensible a mayúsculas)
+  const campo = (obj, nombre) => {
+    const k = Object.keys(obj).find(kk => kk.toLowerCase() === nombre);
+    return k ? obj[k] : '';
+  };
+
+  // ── Líneas ──
+  const lineas = [];
+  let idc = 0;
+  filas.forEach(f => {
+    const desc = String(campo(f, 'descripcion') || '').trim();
+    const cant = campo(f, 'cantidad');
+    const precioRaw = campo(f, 'pvpunitario') !== '' ? campo(f, 'pvpunitario') : campo(f, 'pvpsindto');
+    if (!desc && !precioRaw) return; // fila vacía
+    const ivaRaw = campo(f, 'iva');
+    const dtoRaw = campo(f, 'dtopor');
+    lineas.push({
+      id: idc++,
+      tipo: 'linea',
+      cod: String(campo(f, 'referencia') || '').trim(),
+      desc: desc,
+      cant: (cant === '' || cant === null) ? '' : String(cant).replace('.', ','),
+      // Redondear el precio a 2 decimales (FacturaScripts trae 4: 196.8742)
+      precio: precioRaw === '' ? '' : String(Math.round(parseFloat(precioRaw) * 100) / 100).replace('.', ','),
+      dto: (dtoRaw && parseFloat(dtoRaw) > 0) ? String(dtoRaw).replace('.', ',') : '',
+      iva: (ivaRaw === '' || ivaRaw === null) ? 21 : parseFloat(ivaRaw)
+    });
+  });
+  if (!lineas.length) return null;
+
+  // ── Cabecera del documento (la otra hoja) ──
+  let cab = {};
+  const hojaCab = nombres.find(n => n !== hojaLineas);
+  if (hojaCab && wb.Sheets[hojaCab]) {
+    const filasCab = XLSX.utils.sheet_to_json(wb.Sheets[hojaCab], { defval: '' });
+    if (filasCab.length) cab = filasCab[0];
+  }
+  const campoCab = (nombre) => {
+    const k = Object.keys(cab).find(kk => kk.toLowerCase() === nombre);
+    return k ? String(cab[k]).trim() : '';
+  };
+
+  // Fecha: FacturaScripts la da como "30-06-2026" -> convertir a AAAA-MM-DD
+  let fecha = '';
+  const fechaRaw = campoCab('fecha');
+  const mFecha = fechaRaw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (mFecha) fecha = `${mFecha[3]}-${mFecha[2]}-${mFecha[1]}`;
+
+  // Número del documento (PRE2026A11) y ciudad/dirección del cliente
+  const numero = campoCab('codigo') || campoCab('numero') ||
+                 (nombreArchivo || '').replace(/\.(xlsx|xls|csv)$/i, '').replace(/^Presupuesto_/i, '');
+
+  return {
+    tipo: 'PRESUPUESTO',
+    numero: numero,
+    fecha: fecha,
+    cliente_nombre: campoCab('nombrecliente'),
+    cliente_dir: campoCab('direccion'),
+    cliente_pob: campoCab('ciudad'),
+    cliente_nif: campoCab('cifnif'),
+    cliente_tel: '',
+    referencia: '',
+    lineas: lineas,
+    _origen: 'FacturaScripts'
+  };
 }
 
 // Lee una hoja con la estructura de Muebles Carrascosa
