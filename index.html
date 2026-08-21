@@ -43,7 +43,7 @@
     .field-group input, .field-group textarea { font-size:15px; padding:9px 12px; }
     .field-group label { font-size:13px; }
     .section-label { font-size:13px; }
-    .linea-row input, .linea-row .desc-textarea { font-size:14px; }
+    .linea-row input, .linea-row .desc-textarea { font-size:18px; }
     .lineas-header, .lineas-header-flotante { font-size:12px; }
     .tipo-btn { font-size:14px; padding:8px 18px; }
     .estado-btn { font-size:13px; }
@@ -96,8 +96,8 @@
   .app-body { display:grid; grid-template-columns:1fr; gap:0; height:calc(100vh - 52px); overflow:hidden; }
 
   /* FORM PANEL */
-  .form-panel { background:var(--surface); overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:24px; align-items:center; }
-  .form-panel > * { width:100%; max-width:1100px; }
+  .form-panel { background:var(--surface); overflow-y:auto; padding:24px 14px; display:flex; flex-direction:column; gap:24px; align-items:center; }
+  .form-panel > * { width:100%; max-width:1700px; }
   .section-label { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; }
   .tipo-selector { display:flex; gap:8px; flex-wrap:wrap; }
   .tipo-btn { padding:6px 14px; border-radius:20px; border:1.5px solid var(--border-strong); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; }
@@ -114,17 +114,17 @@
   .divider { border:none; border-top:1px solid var(--border); margin:0; }
 
   /* LÍNEAS */
-  .lineas-header { display:grid; grid-template-columns:18px 72px 1fr 56px 88px 46px 50px 86px 46px; gap:5px; padding:0 0 6px; border-bottom:2px solid var(--navy); }
+  .lineas-header { display:grid; grid-template-columns:16px 112px 1fr 70px 108px 56px 46px 124px 40px; gap:5px; padding:0 0 6px; border-bottom:2px solid var(--navy); }
   /* Cabecera flotante que aparece al hacer scroll por líneas largas */
-  .lineas-header-flotante { display:grid; grid-template-columns:18px 72px 1fr 56px 88px 46px 50px 86px 46px; gap:5px; padding:8px 0; border-bottom:2px solid var(--navy); background:var(--surface); box-shadow:0 3px 8px rgba(0,0,0,0.10); font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .lineas-header-flotante { display:grid; grid-template-columns:16px 112px 1fr 70px 108px 56px 46px 124px 40px; gap:5px; padding:8px 0; border-bottom:2px solid var(--navy); background:var(--surface); box-shadow:0 3px 8px rgba(0,0,0,0.10); font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
   .lineas-header-flotante span:nth-child(4), .lineas-header-flotante span:nth-child(5), .lineas-header-flotante span:nth-child(6), .lineas-header-flotante span:nth-child(8) { text-align:right; }
   .lineas-header-flotante span:nth-child(7) { text-align:center; }
   .lineas-header span { font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
-  .linea-row { display:grid; grid-template-columns:18px 72px 1fr 56px 88px 46px 50px 86px 46px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
-  .linea-row input { font-family:var(--sans); font-size:15.5px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:7px 8px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
+  .linea-row { display:grid; grid-template-columns:16px 112px 1fr 70px 108px 56px 46px 124px 40px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
+  .linea-row input { font-family:var(--sans); font-size:17px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:8px 8px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
   .linea-row input:focus { border-color:var(--green); background:white; }
-  .linea-row input.num { font-family:var(--mono); font-size:15px; text-align:right; letter-spacing:-0.3px; }
-  .linea-row .desc-textarea { font-family:var(--sans); font-size:12px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:5px 7px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); resize:none; overflow:hidden; line-height:1.35; min-height:29px; }
+  .linea-row input.num { font-family:var(--mono); font-size:16.5px; text-align:right; letter-spacing:-0.4px; }
+  .linea-row .desc-textarea { font-family:var(--sans); font-size:17px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:7px 8px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); resize:none; overflow:hidden; line-height:1.35; min-height:34px; }
   .linea-row .desc-textarea:focus { border-color:var(--green); background:white; }
   .ref-parte-input { font-family:var(--mono); font-size:11px; background:transparent; border:1px dashed var(--border-strong); border-radius:4px; padding:3px 7px; outline:none; width:100%; color:var(--text); transition:all 0.15s; }
   .ref-parte-input:focus { border-style:solid; border-color:#0EA5E9; background:white; }
@@ -415,7 +415,7 @@
   .app-body.preview-hidden { grid-template-columns:1fr; }
   .app-body.preview-hidden .preview-panel { display:none; }
   .app-body.preview-hidden .form-panel { align-items:center; }
-  .app-body.preview-hidden .form-panel > * { width:100%; max-width:1200px; }
+  .app-body.preview-hidden .form-panel > * { width:100%; max-width:1900px; }
   /* La barra de acceso rápido ocupa todo el ancho del panel, no el max-width del contenido */
   .form-panel > .acceso-rapido,
   .app-body.preview-hidden .form-panel > .acceso-rapido { max-width:100%; }
@@ -638,7 +638,7 @@
       <rect x="10" y="36" width="30" height="3" rx="1.5" fill="#A8BFD0" opacity=".6"/>
       <rect x="10" y="44" width="44" height="6" rx="2" fill="#2E7D6B" opacity=".85"/>
     </svg>
-    <div class="logo-text">Muebles <span>Carrascosa</span><span id="headerVersion" style="font-size:10px;font-weight:600;color:#7E93A8;margin-left:7px;letter-spacing:0.02em"></span></div>
+    <div class="logo-text"><span id="headerNombreEmpresa">Muebles <span>Carrascosa</span></span><span id="headerVersion" style="font-size:10px;font-weight:600;color:#7E93A8;margin-left:7px;letter-spacing:0.02em"></span></div>
   </div>
   <div class="header-actions">
     <button class="btn-header btn-config" onclick="abrirConfig()">⚙ Empresa</button>
@@ -1340,7 +1340,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.25';
+const APP_VERSION = 'v5.31';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1683,6 +1683,9 @@ function cargarConfig() {
     mostrarLogoPreview(c.logo);
   }
   actualizarPreviewEmpresa();
+  // La cabecera muestra el nombre de empresa configurado (o "Muebles Carrascosa" por defecto)
+  const headerNom = document.getElementById('headerNombreEmpresa');
+  if (headerNom) headerNom.textContent = (c.nombre || '').trim() || 'Muebles Carrascosa';
 }
 
 function guardarConfig() {
@@ -1700,6 +1703,8 @@ function guardarConfig() {
   if (logoDataURL) c.logo = logoDataURL;
   localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
   actualizarPreviewEmpresa();
+  const headerNom2 = document.getElementById('headerNombreEmpresa');
+  if (headerNom2) headerNom2.textContent = (c.nombre || '').trim() || 'Muebles Carrascosa';
   sugerirNumero();
   actualizarPreview();
   cerrarDrawers();
@@ -1803,6 +1808,30 @@ function addLinea(update=true) {
 
 // Al pulsar Tab en el precio de la ÚLTIMA línea, crear una fila nueva y saltar a su descripción
 // (en vez de que el foco salte fuera de la tabla). Con Shift+Tab funciona normal (retrocede).
+// Al pulsar Enter o Tab en el campo CÓDIGO, saltar a la descripción de ESA misma
+// línea (aplica primero el autocompletado por si el código existe en artículos).
+function enterTabEnCodigo(event, lineaId) {
+  if (event.key !== 'Enter' && event.key !== 'Tab') return;
+  if (event.shiftKey) return; // Shift+Tab = hacia atrás, normal
+  event.preventDefault();
+  const valor = event.target.value;
+  autocompletarPorCodigo(lineaId, valor); // esto puede redibujar las líneas
+  // Tras el posible re-render, enfocar la descripción de ESTA línea (por su id)
+  setTimeout(() => {
+    const cont = document.getElementById('lineasContainer');
+    if (!cont) return;
+    // Localizar la fila de esta línea por su posición en el array
+    const idx = lineas.findIndex(l => l.id === lineaId);
+    if (idx < 0) return;
+    const filas = cont.querySelectorAll('.linea-row, .linea-card');
+    const fila = filas[idx];
+    if (fila) {
+      const desc = fila.querySelector('.desc-textarea, textarea, input[placeholder*="escripción"]');
+      if (desc) { desc.focus(); return; }
+    }
+  }, 60);
+}
+
 function tabEnPrecio(event, lineaId) {
   if (event.key !== 'Tab' || event.shiftKey) return; // solo Tab hacia adelante
   // ¿Es esta la última línea de tipo 'linea'?
@@ -1898,7 +1927,7 @@ function renderLineas() {
         </div>
         <div class="m-field">
           <label>Código (opcional)</label>
-          <input type="text" list="codigosDatalist" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
+          <input type="text" list="codigosDatalist" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)" onkeydown="enterTabEnCodigo(event, ${l.id})">
         </div>
         <div class="m-field-row">
           <div class="m-field">
@@ -1937,7 +1966,7 @@ function renderLineas() {
              draggable="true"
              ondragstart="lineaDragStart(event,${l.id})"
              ondragend="lineaDragEnd()">⠿</div>
-        <input type="text" list="codigosDatalist" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)">
+        <input type="text" list="codigosDatalist" placeholder="—" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)" onkeydown="enterTabEnCodigo(event, ${l.id})">
         <div style="display:flex;flex-direction:column;gap:3px">
           <div class="campos-parte">
             <input type="text" placeholder="🔖 Ref. parte (solo 1ª línea del parte)" value="${esc(l.refParte||'')}" oninput="updateLinea(${l.id},'refParte',this.value); comprobarTodasRefPartes()" class="ref-parte-input" id="refParte_${l.id}">
@@ -3012,7 +3041,7 @@ async function _generarPDFreal(accionPDF){
       lineasTit.forEach((ln, idx) => doc.text(ln, ml+2, y+4.2+idx*3.4, {align:'left'}));
       // Subtotal del bloque a la derecha
       if (f.sub.baseSinIva > 0) {
-        doc.setFont('helvetica','normal'); doc.setFontSize(6.8); col([168,191,208]);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7); col([255,255,255]);
         doc.text(`${T('subtotalBloque')}: ${fmt(f.sub.baseSinIva)}  ·  ${T('iva')}: ${fmt(f.sub.conIva)}`, W-mr-2, y+4.2, {align:'right'});
       }
       y += blkH;
