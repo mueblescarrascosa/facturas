@@ -121,6 +121,12 @@
   .lineas-header-flotante span:nth-child(7) { text-align:center; }
   .lineas-header span { font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
   .linea-row { display:grid; grid-template-columns:16px 112px 1fr 70px 108px 56px 46px 124px 40px; gap:5px; align-items:start; padding:6px 0; border-bottom:1px solid var(--border); transition:opacity 0.12s, box-shadow 0.12s; }
+  /* MODO NOTA DE PEDIDO: sin precios, solo código + descripción + cantidad */
+  body.modo-pedido .col-precio, body.modo-pedido .col-dto, body.modo-pedido .col-iva, body.modo-pedido .col-importe { display:none !important; }
+  body.modo-pedido .linea-row { grid-template-columns:16px 130px 1fr 90px 40px; }
+  body.modo-pedido .lineas-header { grid-template-columns:16px 130px 1fr 90px 40px; }
+  /* En móvil (tarjetas): al ocultar el precio, la cantidad ocupa toda la fila */
+  body.modo-pedido .m-field-row:has(.col-precio) .m-field:not(.col-precio) { flex:1 1 100%; }
   .linea-row input { font-family:var(--sans); font-size:17px; background:var(--bg); border:1.5px solid transparent; border-radius:4px; padding:8px 8px; outline:none; width:100%; transition:border-color 0.15s; color:var(--text); }
   .linea-row input:focus { border-color:var(--green); background:white; }
   .linea-row input.num { font-family:var(--mono); font-size:16.5px; text-align:right; letter-spacing:-0.4px; }
@@ -1129,7 +1135,7 @@
 
     <div>
       <div class="cliente-header-row">
-        <div class="section-label">Cliente</div>
+        <div class="section-label" id="labelCliente">Cliente</div>
         <button class="btn-guardar-cliente" onclick="guardarClienteActual()">+ Guardar en agenda</button>
       </div>
       <div class="fields-grid">
@@ -1183,10 +1189,10 @@
           <span></span>
           <span>Código</span><span>Descripción</span>
           <span style="text-align:right">Cant.</span>
-          <span style="text-align:right">Precio</span>
-          <span style="text-align:right">Dto%</span>
-          <span style="text-align:center">IVA</span>
-          <span style="text-align:right">Importe</span>
+          <span style="text-align:right" class="col-precio">Precio</span>
+          <span style="text-align:right" class="col-dto">Dto%</span>
+          <span style="text-align:center" class="col-iva">IVA</span>
+          <span style="text-align:right" class="col-importe">Importe</span>
           <span></span>
         </div>
         <div id="lineasContainer"></div>
@@ -1340,7 +1346,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.31';
+const APP_VERSION = 'v5.33';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1608,6 +1614,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const numActual = numEl.value.trim();
       const eraSugerenciaAuto = numActual === '' || numActual === _ultimaSugerenciaAplicada;
       actualizarConvertStrip();
+      aplicarModoTipo();
       sugerirNumero();
       if (eraSugerenciaAuto) {
         const sugEl = document.getElementById('numSugerencia');
@@ -1621,6 +1628,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   for (let i=0;i<5;i++) addLinea(false);
+  aplicarModoTipo();
   actualizarPreview();
   actualizarBadge();
   sugerirNumero();
@@ -1874,6 +1882,18 @@ function subtotalBloque(idxBloque) {
   }
   return { baseSinIva, conIva };
 }
+// Ajusta la interfaz según el tipo de documento.
+// En NOTA DE PEDIDO: la sección de datos pasa a "PROVEEDOR" y se ocultan
+// las columnas de precio/dto/IVA/importe (solo código, descripción y cantidad).
+function aplicarModoTipo() {
+  const esPedido = (tipoActual === 'NOTA DE PEDIDO');
+  document.body.classList.toggle('modo-pedido', esPedido);
+  const label = document.getElementById('labelCliente');
+  if (label) label.textContent = esPedido ? 'Proveedor' : 'Cliente';
+  const nom = document.getElementById('cliente_nombre');
+  if (nom) nom.placeholder = esPedido ? 'Nombre del proveedor' : 'Nombre del cliente';
+}
+
 function renderLineas() {
   const c = document.getElementById('lineasContainer'); c.innerHTML='';
   lineas.forEach((l, idx) => {
@@ -1934,12 +1954,12 @@ function renderLineas() {
             <label>Cantidad</label>
             <input type="number" inputmode="decimal" placeholder="0" value="${l.cant}" min="0" step="1" oninput="updateLinea(${l.id},'cant',this.value)">
           </div>
-          <div class="m-field">
+          <div class="m-field col-precio">
             <label>Precio (€)</label>
             <input type="number" inputmode="decimal" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
           </div>
         </div>
-        <div class="m-field-row">
+        <div class="m-field-row col-precio">
           <div class="m-field">
             <label>Dto. % (opcional)</label>
             <input type="number" inputmode="decimal" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" oninput="updateLinea(${l.id},'dto',this.value)">
@@ -1949,7 +1969,7 @@ function renderLineas() {
             <select onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
           </div>
         </div>
-        <div class="importe-cell" id="imp_${l.id}">${importeLinea(l)}</div>
+        <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
         <div class="linea-acciones">
           <div class="m-mover">
             <button class="btn-mover" onclick="moverLinea(${l.id},-1)" title="Subir">▲</button>
@@ -1977,10 +1997,10 @@ function renderLineas() {
           <textarea placeholder="Descripción" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea">${esc(l.desc)}</textarea>
         </div>
         <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="1" oninput="updateLinea(${l.id},'cant',this.value)">
-        <input type="number" class="num" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
-        <input type="number" class="num" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" title="Descuento % solo de esta línea" oninput="updateLinea(${l.id},'dto',this.value)">
-        <select class="linea-iva-select" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
-        <div class="importe-cell" id="imp_${l.id}">${importeLinea(l)}</div>
+        <input type="number" class="num col-precio" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
+        <input type="number" class="num col-dto" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" title="Descuento % solo de esta línea" oninput="updateLinea(${l.id},'dto',this.value)">
+        <select class="linea-iva-select col-iva" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
+        <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
         <div class="linea-acciones">
           <button class="btn-dup" onclick="duplicarLinea(${l.id})" title="Duplicar línea">⧉</button>
           <button class="btn-del" onclick="delLinea(${l.id})" title="Eliminar línea">×</button>
@@ -2480,6 +2500,7 @@ function cargarEstado(estado){
   tipoActual=estado.tipo||'PRESUPUESTO';
   setEstado(estado.estado||'PENDIENTE');
   document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.toggle('active',b.dataset.tipo===tipoActual));
+  aplicarModoTipo();
   ['numero','fecha','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','cliente_email','descuento','iva_pct','forma_pago','observaciones'].forEach(id=>{document.getElementById(id).value=estado[id]||'';});
   // Ajustar el modo aseguradora al documento que se carga:
   //  - si TIENE referencias de parte -> se activa (para que no queden ocultas)
@@ -2992,7 +3013,7 @@ async function _generarPDFreal(accionPDF){
 
   const cY=37;
   fill(lightgray); stroke(borderC); doc.setLineWidth(0.3); doc.rect(ml,cY,90,26,'FD');
-  col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(T('cliente'),ml+4,cY+5);
+  col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text((tipoActual==='NOTA DE PEDIDO'?'PROVEEDOR':T('cliente')),ml+4,cY+5);
   col(black); doc.setFont('helvetica','bold'); doc.setFontSize(11);
   doc.text(document.getElementById('cliente_nombre').value||'—',ml+4,cY+11,{maxWidth:84});
   doc.setFont('helvetica','normal'); doc.setFontSize(10); col(muted);
@@ -3007,9 +3028,17 @@ async function _generarPDFreal(accionPDF){
   y=cY+32;
   fill(navy); doc.rect(ml,y,W-ml-mr,7,'F');
   col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  const cols={cod:ml+2,desc:ml+21,cant:W-mr-86,precio:W-mr-58,iva:W-mr-32,imp:W-mr-2};
+  // ¿Es una nota de pedido? -> sin precios, la descripción ocupa casi todo el ancho
+  const esPedido = (tipoActual === 'NOTA DE PEDIDO');
+  const cols = esPedido
+    ? {cod:ml+2, desc:ml+21, cant:W-mr-2, precio:W-mr-58, iva:W-mr-32, imp:W-mr-2}
+    : {cod:ml+2, desc:ml+21, cant:W-mr-86, precio:W-mr-58, iva:W-mr-32, imp:W-mr-2};
   doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
-  doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'}); doc.text(T('precio'),cols.precio,y+4.8,{align:'right'}); doc.text(T('iva'),cols.iva,y+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,y+4.8,{align:'right'});
+  if (esPedido) {
+    doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'});
+  } else {
+    doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'}); doc.text(T('precio'),cols.precio,y+4.8,{align:'right'}); doc.text(T('iva'),cols.iva,y+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,y+4.8,{align:'right'});
+  }
   y+=7;
 
   // Construir secuencia de filas a pintar: bloques (con subtotal) + líneas normales
@@ -3080,8 +3109,12 @@ async function _generarPDFreal(accionPDF){
       fill(navy); doc.rect(ml, y, W-ml-mr, 7, 'F');
       col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8);
       doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
-      doc.text(T('cantidad'),cols.cant,y+5,{align:'right'}); doc.text(T('precio'),cols.precio,y+5,{align:'right'});
-      doc.text(T('iva'),cols.iva,y+5,{align:'right'}); doc.text(T('importe'),cols.imp,y+5,{align:'right'});
+      if (esPedido) {
+        doc.text(T('cantidad'),cols.cant,y+5,{align:'right'});
+      } else {
+        doc.text(T('cantidad'),cols.cant,y+5,{align:'right'}); doc.text(T('precio'),cols.precio,y+5,{align:'right'});
+        doc.text(T('iva'),cols.iva,y+5,{align:'right'}); doc.text(T('importe'),cols.imp,y+5,{align:'right'});
+      }
       y += 7;
       zebra = 0;
     }
@@ -3112,10 +3145,12 @@ async function _generarPDFreal(accionPDF){
       const anchoIva = 16;
       const anchoImp = (cols.imp - cols.iva) + 24;
       if(cant) numDer(fmtNum(cant), cols.cant, anchoCant);
-      if(precio) numDer(fmt(precio), cols.precio, anchoPrecio);
-      const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-      if(imp) numDer(ivaL+'%', cols.iva, anchoIva);
-      if(imp) numDer(fmt(imp), cols.imp, anchoImp);
+      if(!esPedido){
+        if(precio) numDer(fmt(precio), cols.precio, anchoPrecio);
+        const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
+        if(imp) numDer(ivaL+'%', cols.iva, anchoIva);
+        if(imp) numDer(fmt(imp), cols.imp, anchoImp);
+      }
     }
     y+=rowH;
     zebra++;
@@ -3131,6 +3166,7 @@ async function _generarPDFreal(accionPDF){
     doc.setFont('courier',grand?'bold':'normal');doc.text(val,totX,y+1.5,{align:'right'});
     if(!grand) col(black); y+=totRowH;
   };
+  if(!esPedido){
   drawTotRow(T('subtotal'),fmt(t.subtotal));
   if(t.descPct>0) drawTotRow(`${T('descuento')} (${t.descPct}%)`,'−'+fmt(t.descImp));
   drawTotRow(T('baseImponible'),fmt(t.base));
@@ -3148,6 +3184,7 @@ async function _generarPDFreal(accionPDF){
   if(t.anticipo>0){
     y+=1; drawTotRow(T('aCuenta'),'−'+fmt(t.anticipo));
     y+=1; drawTotRow(T('pendiente'),fmt(t.pendiente),true); col(black);
+  }
   }
   y+=4;
   // Total en letra (debajo de los totales, alineado a la izquierda)
