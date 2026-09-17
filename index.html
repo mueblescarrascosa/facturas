@@ -1115,8 +1115,12 @@
         </div>
         <div class="field-group full" id="validezWrap">
           <label>Validez del presupuesto (días)</label>
-          <input type="number" id="validez_dias" placeholder="30" min="0" step="1" value="30" oninput="actualizarPreview()">
+          <input type="number" id="validez_dias" placeholder="40" min="0" step="1" value="40" oninput="actualizarPreview()">
           <div class="validez-info" id="validezInfo"></div>
+        </div>
+        <div class="field-group full">
+          <label>🔒 Notas internas (privadas · NO salen en el PDF)</label>
+          <textarea id="notas_internas" rows="2" placeholder="Recordatorios, condiciones habladas, lo que sea... solo para ti" oninput="actualizarPreview()" style="background:#FFFBEA;border-color:#E8D98A"></textarea>
         </div>
         <div class="field-group">
           <label>Idioma del PDF</label>
@@ -1346,7 +1350,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.33';
+const APP_VERSION = 'v5.35';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2465,6 +2469,7 @@ function capturarEstado(){
     observaciones:document.getElementById('observaciones').value,
     texto_legal:document.getElementById('texto_legal').value,
     validez_dias:document.getElementById('validez_dias').value,
+    notas_internas:document.getElementById('notas_internas').value,
     anticipo:document.getElementById('anticipo').value,
     vinculo:documentoVinculo,
     total:t.total,
@@ -2516,7 +2521,8 @@ function cargarEstado(estado){
   document.getElementById('idioma_pdf').value=estado.idioma_pdf||'es';
   if(!estado.iva_pct) document.getElementById('iva_pct').value='21';
   document.getElementById('texto_legal').value=estado.texto_legal||LEGAL_DEFAULT;
-  document.getElementById('validez_dias').value=estado.validez_dias||'30';
+  document.getElementById('validez_dias').value=estado.validez_dias||'40';
+  document.getElementById('notas_internas').value=estado.notas_internas||'';
   document.getElementById('anticipo').value=estado.anticipo||'';
   documentoVinculo=estado.vinculo||null;
   // sync IVA quick buttons
@@ -2647,11 +2653,11 @@ function nuevoDocumento(){
   document.querySelectorAll('.tipo-btn').forEach(b=>b.classList.toggle('active',b.dataset.tipo==='PRESUPUESTO'));
   setEstado('PENDIENTE');
   sugerirNumero();
-  ['numero','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','cliente_email','descuento','forma_pago','observaciones'].forEach(id=>document.getElementById(id).value='');
+  ['numero','referencia','cliente_nombre','cliente_dir','cliente_pob','cliente_nif','cliente_tel','cliente_num','cliente_email','descuento','forma_pago','observaciones','notas_internas'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('iva_pct').value='21';
   const c=getConfig(); document.getElementById('texto_legal').value=c.texto_legal||LEGAL_DEFAULT;
-  document.getElementById('validez_dias').value='30';
+  document.getElementById('validez_dias').value='40';
   document.getElementById('anticipo').value='';
   document.getElementById('idioma_pdf').value='es';
   documentoVinculo=null;
@@ -3011,7 +3017,7 @@ async function _generarPDFreal(accionPDF){
     col(muted); doc.setFont('helvetica','normal');
   }
 
-  const cY=37;
+  const cY=59;
   fill(lightgray); stroke(borderC); doc.setLineWidth(0.3); doc.rect(ml,cY,90,26,'FD');
   col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text((tipoActual==='NOTA DE PEDIDO'?'PROVEEDOR':T('cliente')),ml+4,cY+5);
   col(black); doc.setFont('helvetica','bold'); doc.setFontSize(11);
@@ -4329,7 +4335,8 @@ function nuevoDocParaCliente(clienteId) {
   document.getElementById('cliente_email').value = c.email || '';
   document.getElementById('fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('iva_pct').value='21';
-  document.getElementById('validez_dias').value='30';
+  document.getElementById('validez_dias').value='40';
+  document.getElementById('notas_internas').value='';
   const cfg=getConfig(); document.getElementById('texto_legal').value=cfg.texto_legal||LEGAL_DEFAULT;
   documentoVinculo=null; documentoEnEdicion=null;
   syncIvaQuick(21);
