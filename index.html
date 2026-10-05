@@ -1351,7 +1351,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.36';
+const APP_VERSION = 'v5.37';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1937,48 +1937,46 @@ function addLinea(update=true) {
 
 // Al pulsar Tab en el precio de la ÚLTIMA línea, crear una fila nueva y saltar a su descripción
 // (en vez de que el foco salte fuera de la tabla). Con Shift+Tab funciona normal (retrocede).
-// Al pulsar Enter o Tab en el campo CÓDIGO, saltar a la descripción de ESA misma
-// línea (aplica primero el autocompletado por si el código existe en artículos).
+// ── NAVEGACIÓN CON TECLADO EN LAS LÍNEAS ────────────────────────────────────
+// Filas del contenedor (líneas Y títulos de bloque), en el mismo orden que 'lineas'
+function _filasLineas(){ const c=document.getElementById('lineasContainer'); return c ? [...c.children] : []; }
+function _filaDeLinea(lineaId){ const i=lineas.findIndex(l=>l.id===lineaId); return i<0 ? null : _filasLineas()[i]; }
+// Campos de una fila por los que se puede tabular (visibles, sin botones)
+function _camposFila(fila){
+  return [...fila.querySelectorAll('input, textarea, select')]
+    .filter(el => el.offsetParent !== null && !el.disabled && el.tabIndex !== -1 && el.type !== 'file');
+}
+// Enfocar dejando el cursor al FINAL del texto (no al principio)
+function _enfocarAlFinal(el){
+  if (!el) return; el.focus();
+  try { if (el.tagName === 'TEXTAREA' || el.type === 'text') { const n = el.value.length; el.setSelectionRange(n, n); } } catch(e){}
+}
+// Enter o Tab en el CÓDIGO: autocompletar y pasar al siguiente campo de ESA línea
+// (en modo aseguradora: Ref. parte; si no, la descripción)
 function enterTabEnCodigo(event, lineaId) {
   if (event.key !== 'Enter' && event.key !== 'Tab') return;
   if (event.shiftKey) return; // Shift+Tab = hacia atrás, normal
   event.preventDefault();
-  const valor = event.target.value;
-  autocompletarPorCodigo(lineaId, valor); // esto puede redibujar las líneas
-  // Tras el posible re-render, enfocar la descripción de ESTA línea (por su id)
+  autocompletarPorCodigo(lineaId, event.target.value); // puede redibujar las líneas
   setTimeout(() => {
-    const cont = document.getElementById('lineasContainer');
-    if (!cont) return;
-    // Localizar la fila de esta línea por su posición en el array
-    const idx = lineas.findIndex(l => l.id === lineaId);
-    if (idx < 0) return;
-    const filas = cont.querySelectorAll('.linea-row, .linea-card');
-    const fila = filas[idx];
-    if (fila) {
-      const desc = fila.querySelector('.desc-textarea, textarea, input[placeholder*="escripción"]');
-      if (desc) { desc.focus(); return; }
-    }
+    const fila = _filaDeLinea(lineaId); if (!fila) return;
+    const campos = _camposFila(fila);
+    const cod = fila.querySelector('input[list="codigosDatalist"]');
+    const i = campos.indexOf(cod);
+    _enfocarAlFinal(campos[i + 1] || fila.querySelector('.desc-textarea'));
   }, 60);
 }
-
+// Tab en el IVA (último campo de la línea): ir al primer campo de la SIGUIENTE fila.
+// Si es la última línea, se crea una nueva.
 function tabEnPrecio(event, lineaId) {
   if (event.key !== 'Tab' || event.shiftKey) return; // solo Tab hacia adelante
-  // ¿Es esta la última línea de tipo 'linea'?
-  const lineasReales = lineas.filter(l => l.tipo === 'linea');
-  const ultima = lineasReales[lineasReales.length - 1];
-  if (!ultima || ultima.id !== lineaId) return; // no es la última, Tab normal
-  // Es la última: crear línea nueva y enfocar su descripción
   event.preventDefault();
-  const nuevoId = addLinea();
+  const idx = lineas.findIndex(l => l.id === lineaId);
+  if (idx < 0) return;
+  if (idx === lineas.length - 1) addLinea();
   setTimeout(() => {
-    // Enfocar la descripción de la nueva línea (textarea en escritorio)
-    const cont = document.getElementById('lineasContainer');
-    const filas = cont.querySelectorAll('.linea-row, .linea-card');
-    const ultimaFila = filas[filas.length - 1];
-    if (ultimaFila) {
-      const desc = ultimaFila.querySelector('.desc-textarea, textarea');
-      if (desc) desc.focus();
-    }
+    const fila = _filasLineas()[idx + 1]; if (!fila) return;
+    _enfocarAlFinal(_camposFila(fila)[0]);
   }, 50);
 }
 function addBloque() {
@@ -2035,7 +2033,7 @@ function renderLineas() {
                data-bloque-input="${l.id}" value="${esc(l.titulo)}"
                oninput="updateLinea(${l.id},'titulo',this.value)">
         ${subHtml}
-        <button class="btn-del-bloque" onclick="delLinea(${l.id})" title="Eliminar bloque">×</button>`;
+        <button class="btn-del-bloque" tabindex="-1" onclick="delLinea(${l.id})" title="Eliminar bloque">×</button>`;
       row.addEventListener('dragover', (e)=>lineaDragOver(e, l.id));
       row.addEventListener('dragleave', (e)=>lineaDragLeave(e, l.id));
       row.addEventListener('drop', (e)=>lineaDrop(e, l.id));
@@ -2096,8 +2094,8 @@ function renderLineas() {
             <button class="btn-mover" onclick="moverLinea(${l.id},-1)" title="Subir">▲</button>
             <button class="btn-mover" onclick="moverLinea(${l.id},1)" title="Bajar">▼</button>
           </div>
-          <button class="btn-dup" onclick="duplicarLinea(${l.id})" title="Duplicar">⧉ Duplicar</button>
-          <button class="btn-del" onclick="delLinea(${l.id})" title="Eliminar">× Borrar</button>
+          <button class="btn-dup" tabindex="-1" onclick="duplicarLinea(${l.id})" title="Duplicar">⧉ Duplicar</button>
+          <button class="btn-del" tabindex="-1" onclick="delLinea(${l.id})" title="Eliminar">× Borrar</button>
         </div>
         <div class="precio-aviso" id="precio_aviso_${l.id}" style="display:none;font-size:12px;margin-top:6px;text-align:center"></div>`;
     } else {
@@ -2123,8 +2121,8 @@ function renderLineas() {
         <select class="linea-iva-select col-iva" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
         <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
         <div class="linea-acciones">
-          <button class="btn-dup" onclick="duplicarLinea(${l.id})" title="Duplicar línea">⧉</button>
-          <button class="btn-del" onclick="delLinea(${l.id})" title="Eliminar línea">×</button>
+          <button class="btn-dup" tabindex="-1" onclick="duplicarLinea(${l.id})" title="Duplicar línea">⧉</button>
+          <button class="btn-del" tabindex="-1" onclick="delLinea(${l.id})" title="Eliminar línea">×</button>
         </div>
         <div class="precio-aviso" id="precio_aviso_${l.id}" style="display:none;grid-column:1/-1;font-size:11px;padding:2px 0 0 60px"></div>`;
       row.addEventListener('dragover', (e)=>lineaDragOver(e, l.id));
