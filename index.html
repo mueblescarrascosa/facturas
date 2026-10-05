@@ -1008,6 +1008,7 @@
     <h2>📋 Historial</h2>
     <div class="drawer-header-actions">
       <button class="btn-action-sm btn-outline-sm" onclick="exportarBackup()">⬇ Exportar</button>
+          <button class="btn-action-sm btn-outline-sm" onclick="reducirFotosHistorial()" title="Comprime las fotos guardadas para liberar espacio">🗜 Reducir fotos</button>
       <button class="btn-action-sm btn-green-sm" onclick="document.getElementById('importInput').click()">⬆ Importar</button>
       <button class="btn-close-drawer" onclick="cerrarDrawers()">✕</button>
     </div>
@@ -1350,7 +1351,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.35';
+const APP_VERSION = 'v5.36';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -1366,7 +1367,82 @@ const SUPA_TABLA = "facturas"; // tabla propia de esta app
 let SUPA_TOKEN = null, SUPA_REFRESH = null, SUPA_OK = false;
 
 // Claves de localStorage que se sincronizan (lo compartido entre dispositivos)
-const CLAVES_SYNC = [STORAGE_KEY, CONFIG_KEY, 'mc_articulos_v1', 'mc_clientes_v1'];
+const BORRADOS_KEY = 'mc_borrados_v1';
+const CLAVES_LISTA = [STORAGE_KEY, 'mc_articulos_v1', 'mc_clientes_v1'];
+const CLAVES_SYNC = [STORAGE_KEY, CONFIG_KEY, 'mc_articulos_v1', 'mc_clientes_v1', BORRADOS_KEY];
+
+// ── SINCRONIZACIÓN SEGURA: fusión documento a documento ──────────────────────
+// Cada documento/cliente/artículo lleva _mod (cuándo se tocó por última vez).
+// Al sincronizar se combinan local y nube elemento a elemento: gana la versión
+// más reciente de cada uno y NUNCA se pierde un elemento que solo exista en un
+// lado. Los borrados se apuntan en mc_borrados_v1 para que no "resuciten".
+function _leerJSON(txt, def){ try{ const v=JSON.parse(txt); return (v===null||v===undefined)?def:v; }catch(e){ return def; } }
+function _claveItem(x){ return (x && typeof x==='object' && x.id!==undefined && x.id!==null) ? 'id:'+x.id : 'json:'+JSON.stringify(x); }
+function _sinMod(x){ if(!x||typeof x!=='object') return JSON.stringify(x); const {_mod, ...r}=x; return JSON.stringify(r); }
+function getBorrados(){ const b=_leerJSON(localStorage.getItem(BORRADOS_KEY), {}); return (b && typeof b==='object') ? b : {}; }
+
+// Marca con _mod lo nuevo o cambiado y devuelve las "lápidas" de lo borrado (o null)
+function _sellarCambios(clave, previoTxt, nuevoArr){
+  const previo = _leerJSON(previoTxt, []);
+  const mapaPrev = new Map((Array.isArray(previo)?previo:[]).map(x=>[_claveItem(x), x]));
+  const ahora = Date.now(), vistos = new Set();
+  nuevoArr.forEach(x=>{
+    if(!x || typeof x!=='object') return;
+    const k=_claveItem(x); vistos.add(k);
+    const p=mapaPrev.get(k);
+    if(!p || _sinMod(p)!==_sinMod(x)) x._mod = ahora;
+    else if(p._mod && !x._mod) x._mod = p._mod;
+  });
+  const borrados = getBorrados(); let hay=false;
+  mapaPrev.forEach((p,k)=>{ if(!vistos.has(k) && k.startsWith('id:')){ (borrados[clave]=borrados[clave]||{})[k]=ahora; hay=true; } });
+  return hay ? borrados : null;
+}
+
+// Combina dos listas. Devuelve {lista, cambiaNube}: cambiaNube=true si la nube
+// no tenía ya exactamente este resultado (hay que subirlo).
+function fusionarListas(clave, local, nube, borrados){
+  local = Array.isArray(local)?local:[]; nube = Array.isArray(nube)?nube:[];
+  const tumbas = (borrados && borrados[clave]) || {};
+  const mapaL = new Map(local.map(x=>[_claveItem(x),x]));
+  const mapaN = new Map(nube.map(x=>[_claveItem(x),x]));
+  const vivo = (k,x)=>!(tumbas[k] && tumbas[k] >= ((x&&x._mod)||0));
+  const lista=[], usados=new Set(); let cambiaNube=false;
+  // 1) Lo que solo está aquí (p.ej. guardado sin internet) va arriba
+  local.forEach(x=>{ const k=_claveItem(x); if(mapaN.has(k)||usados.has(k)) return; usados.add(k); if(vivo(k,x)){ lista.push(x); cambiaNube=true; } });
+  // 2) Lo de la nube, eligiendo la versión más reciente de cada elemento
+  nube.forEach(x=>{
+    const k=_claveItem(x); if(usados.has(k)) return; usados.add(k);
+    const a=mapaL.get(k); let e=x;
+    if(a && (a._mod||0) > (x._mod||0)){ e=a; cambiaNube=true; }
+    if(vivo(k,e)) lista.push(e); else cambiaNube=true;
+  });
+  return {lista, cambiaNube};
+}
+function fusionarBorrados(local, nube){
+  const r={}; let cambiaNube=false;
+  [nube||{}, local||{}].forEach((o,i)=>Object.keys(o).forEach(cl=>{
+    r[cl]=r[cl]||{};
+    Object.keys(o[cl]||{}).forEach(k=>{ const v=o[cl][k]; if(i===1 && v>(r[cl][k]||0)) cambiaNube=true; r[cl][k]=Math.max(r[cl][k]||0,v); });
+  }));
+  return {lista:r, cambiaNube};
+}
+function _refrescarTrasSync(clave){
+  try{
+    if(clave===STORAGE_KEY){ actualizarBadge(); renderAccesoRapido(); }
+    if(clave==='mc_clientes_v1') cargarClientes();
+    if(clave==='mc_articulos_v1') cargarArticulos();
+  }catch(e){}
+}
+let _avisoLlenoTs=0;
+function avisarAlmacenamientoLleno(){
+  if(Date.now()-_avisoLlenoTs < 30000) return; _avisoLlenoTs=Date.now();
+  alert('⚠ NO SE HA PODIDO GUARDAR: el almacenamiento del navegador está lleno.\n\n' +
+        'Causa habitual: muchas fotos adjuntas en los documentos.\n\n' +
+        'Qué hacer:\n 1. Exporta una copia de seguridad (Historial → Exportar).\n' +
+        ' 2. Pulsa "Reducir fotos" en el Historial para comprimir las fotos guardadas.\n' +
+        ' 3. Si sigue lleno, quita fotos de documentos antiguos.\n\n' +
+        'El documento sigue en pantalla: no cierres la app hasta haberlo guardado.');
+}
 // (el PIN y el borrador quedan locales, no se suben)
 
 // Recuperar sesión guardada al cargar
@@ -1502,16 +1578,28 @@ async function supaCargarTodo() {
   if (!supaSesionActiva()) return;
   _mostrarEstadoSync('cargando', '☁ Sincronizando...');
   let algunError = false;
-  for (const clave of CLAVES_SYNC) {
+  // Primero los borrados (para que la fusión de listas los respete)
+  const orden = [BORRADOS_KEY, ...CLAVES_SYNC.filter(k => k !== BORRADOS_KEY)];
+  for (const clave of orden) {
     const datosNube = await supaLeerClave(clave);
     if (datosNube === undefined) { algunError = true; continue; }
-    if (datosNube !== null) {
-      // La nube manda: escribir en local
-      try { localStorage.setItem(clave, JSON.stringify(datosNube)); } catch(e){}
-    } else {
+    const localTxt = localStorage.getItem(clave);
+    if (datosNube === null) {
       // No hay nada en la nube todavía: subir lo que haya en local
-      const local = localStorage.getItem(clave);
-      if (local) await supaGuardarClave(clave, local);
+      if (localTxt) await supaGuardarClave(clave, localTxt);
+      continue;
+    }
+    if (clave === BORRADOS_KEY || CLAVES_LISTA.includes(clave)) {
+      // Combinar documento a documento: nada que exista solo aquí se pierde
+      const r = (clave === BORRADOS_KEY)
+        ? fusionarBorrados(_leerJSON(localTxt, {}), datosNube)
+        : fusionarListas(clave, _leerJSON(localTxt, []), datosNube, getBorrados());
+      const txt = JSON.stringify(r.lista);
+      try { _setItemCrudo(clave, txt); } catch(e){}
+      if (r.cambiaNube) await supaGuardarClave(clave, txt);
+    } else {
+      // Configuración de empresa: manda la nube
+      try { _setItemCrudo(clave, JSON.stringify(datosNube)); } catch(e){}
     }
   }
   SUPA_OK = !algunError;
@@ -1527,8 +1615,22 @@ async function supaCargarTodo() {
 // Guardar una clave concreta en la nube (se llama tras cada cambio local)
 async function supaSync(clave) {
   if (!supaSesionActiva()) return;
-  const valor = localStorage.getItem(clave);
+  let valor = localStorage.getItem(clave);
   if (valor === null) return;
+  // Listas y borrados: antes de subir, combinar con lo que haya en la nube
+  // (así no se pisa lo que otro dispositivo guardó mientras tanto)
+  if (CLAVES_LISTA.includes(clave) || clave === BORRADOS_KEY) {
+    const nube = await supaLeerClave(clave);
+    if (nube === undefined) { SUPA_OK = false; _mostrarEstadoSync('error', '⚠ Sin internet · guardado aquí'); return; }
+    if (nube !== null) {
+      const r = (clave === BORRADOS_KEY)
+        ? fusionarBorrados(_leerJSON(valor, {}), nube)
+        : fusionarListas(clave, _leerJSON(valor, []), nube, getBorrados());
+      const txt = JSON.stringify(r.lista);
+      if (txt !== valor) { try { _setItemCrudo(clave, txt); } catch(e){} _refrescarTrasSync(clave); }
+      valor = txt;
+    }
+  }
   const ok = await supaGuardarClave(clave, valor);
   SUPA_OK = ok;
   if (ok) _mostrarEstadoSync('ok', '✓ Guardado en la nube');
@@ -1540,12 +1642,27 @@ async function supaSync(clave) {
 // tener que modificar cada punto del código por separado.
 (function() {
   const _setItemOriginal = localStorage.setItem.bind(localStorage);
+  const _escribir = (clave, valor) => {
+    try { _setItemOriginal(clave, valor); }
+    catch(e) {
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22) && (CLAVES_SYNC.includes(clave))) avisarAlmacenamientoLleno();
+      throw e;
+    }
+  };
+  // Escritura "en bruto" (sin sellar ni programar subida): la usa la propia sincronización
+  window._setItemCrudo = _escribir;
   let _syncPendiente = {}; // agrupar cambios rápidos (debounce)
   localStorage.setItem = function(clave, valor) {
-    _setItemOriginal(clave, valor);
+    let tumbas = null;
+    if (CLAVES_LISTA.includes(clave)) {
+      const arr = _leerJSON(valor, null);
+      if (Array.isArray(arr)) { tumbas = _sellarCambios(clave, localStorage.getItem(clave), arr); valor = JSON.stringify(arr); }
+    }
+    _escribir(clave, valor);
+    if (tumbas) localStorage.setItem(BORRADOS_KEY, JSON.stringify(tumbas));
     if (CLAVES_SYNC.includes(clave) && supaSesionActiva()) {
       clearTimeout(_syncPendiente[clave]);
-      _syncPendiente[clave] = setTimeout(() => { supaSync(clave); }, 1000);
+      _syncPendiente[clave] = setTimeout(() => { supaSync(clave); }, clave === STORAGE_KEY ? 4000 : 1000);
     }
   };
 })();
@@ -2427,22 +2544,57 @@ function actualizarLineasPreview() {
   lineas.forEach((l, idx) => {
     if (l.tipo === 'bloque') {
       if (!(l.titulo && l.titulo.trim())) return; // bloque sin título no se muestra
-      html += `<tr class="doc-bloque-row"><td colspan="6">${l.titulo}</td></tr>`;
+      html += `<tr class="doc-bloque-row"><td colspan="6">${esc(l.titulo)}</td></tr>`;
       const sub = subtotalBloque(idx);
       if (sub.baseSinIva > 0) {
-        html += `<tr class="doc-bloque-subtotal"><td colspan="4" style="text-align:right">Subtotal ${l.titulo}:</td><td colspan="2" class="right">${fmt(sub.baseSinIva)} + IVA = ${fmt(sub.conIva)}</td></tr>`;
+        html += `<tr class="doc-bloque-subtotal"><td colspan="4" style="text-align:right">Subtotal ${esc(l.titulo)}:</td><td colspan="2" class="right">${fmt(sub.baseSinIva)} + IVA = ${fmt(sub.conIva)}</td></tr>`;
       }
       return;
     }
     const imp=importeLineaNum(l);
     if (!(l.desc||l.cant||l.precio)) return;
     const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-    html += `<tr><td class="cod">${l.cod||''}</td><td>${esc(descConParte(l))}</td><td class="right">${l.cant?fmtNum(l.cant):''}</td><td class="right">${l.precio?fmt(parseFloat(l.precio)):''}</td><td class="right">${imp!==0?ivaL+'%':''}</td><td class="right">${imp!==0?fmt(imp):'—'}</td></tr>`;
+    html += `<tr><td class="cod">${esc(l.cod||'')}</td><td>${esc(descConParte(l))}</td><td class="right">${l.cant?fmtNum(l.cant):''}</td><td class="right">${l.precio?fmt(parseFloat(l.precio)):''}</td><td class="right">${imp!==0?ivaL+'%':''}</td><td class="right">${imp!==0?fmt(imp):'—'}</td></tr>`;
   });
   tbody.innerHTML = html;
 }
 
 // ── HISTORIAL ─────────────────────────────────────────────────────────────────
+// Comprime todas las fotos ya guardadas en el historial (máx 1200px, JPEG 0,78).
+// Solo sustituye una foto si la versión nueva ocupa menos. No toca el texto.
+function _recomprimirFoto(dataURL){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const MAX=1200; let w=img.naturalWidth, h=img.naturalHeight;
+        if(w>MAX||h>MAX){ const k=Math.min(MAX/w,MAX/h); w=Math.round(w*k); h=Math.round(h*k); }
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        const ctx=cv.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+        const nueva=cv.toDataURL('image/jpeg',0.78);
+        res(nueva.length < dataURL.length ? nueva : dataURL);
+      }catch(e){ res(dataURL); }
+    };
+    img.onerror=()=>res(dataURL);
+    img.src=dataURL;
+  });
+}
+async function reducirFotosHistorial(){
+  const h=getHistorial();
+  const conFotos=h.filter(d=>Array.isArray(d.imagenes)&&d.imagenes.length);
+  if(!conFotos.length){ mostrarToast('No hay fotos guardadas en el historial'); return; }
+  const antes=JSON.stringify(h).length;
+  if(!confirm(`Se comprimirán las fotos de ${conFotos.length} documento(s) para liberar espacio.\n\nLas fotos seguirán viéndose bien en el PDF. Conviene exportar antes una copia de seguridad.\n\n¿Continuar?`)) return;
+  mostrarToast('🗜 Comprimiendo fotos…');
+  for(const d of conFotos){
+    for(const im of d.imagenes){ if(im && im.dataURL) im.dataURL = await _recomprimirFoto(im.dataURL); }
+  }
+  try { saveHistorial(h); }
+  catch(e){ return; } // el aviso de almacenamiento lleno ya se ha mostrado
+  const despues=JSON.stringify(h).length;
+  mostrarToast(`✓ Fotos comprimidas: ${(antes/1048576).toFixed(1)} MB → ${(despues/1048576).toFixed(1)} MB`, true);
+}
+
 function getHistorial(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch{return [];}}
 function saveHistorial(h){localStorage.setItem(STORAGE_KEY,JSON.stringify(h));actualizarBadge();}
 function actualizarBadge(){const h=getHistorial(),b=document.getElementById('histBadge');b.style.display=h.length?'':'none';b.textContent=h.length;}
@@ -2777,7 +2929,7 @@ function renderHistorial(){
         </div>
         <span class="hist-item-fecha">${fecha}</span>
       </div>
-      <div class="hist-item-cliente">${d.cliente_nombre||'(sin cliente)'}</div>
+      <div class="hist-item-cliente">${esc(d.cliente_nombre||'(sin cliente)')}</div>
       <div class="hist-item-ref">${d.numero?'Nº '+d.numero:''} ${d.referencia?'· '+d.referencia:''}</div>
       <div class="hist-item-bottom">
         <span class="hist-item-total">${fmt(d.total||0)}</span>
@@ -3271,10 +3423,10 @@ function imgDrop(e) {
 function cargarImagenFile(file) {
   const reader = new FileReader();
   reader.onload = e => {
-    // Redimensionar a máx 1600px para no inflar el PDF
+    // Redimensionar a máx 1200px (suficiente para el PDF y ocupa mucho menos)
     const img = new Image();
     img.onload = () => {
-      const MAX = 1600;
+      const MAX = 1200;
       let w = img.width, h = img.height;
       if (w > MAX || h > MAX) {
         if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -3283,7 +3435,7 @@ function cargarImagenFile(file) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const dataURL = canvas.toDataURL('image/jpeg', 0.88);
+      const dataURL = canvas.toDataURL('image/jpeg', 0.78);
       imagenes.push({ id: imgIdCounter++, dataURL, caption: '' });
       renderImagenes();
     };
@@ -3700,8 +3852,8 @@ function renderModalArticulos() {
   const itemHTML = a => `
     <div class="art-quick-item">
       <div>
-        <div class="art-quick-desc">${a.desc||'(sin descripción)'}</div>
-        ${a.cod?`<div style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">${a.cod}</div>`:''}
+        <div class="art-quick-desc">${esc(a.desc||'(sin descripción)')}</div>
+        ${a.cod?`<div style="font-size:10px;color:var(--text-muted);font-family:var(--mono)">${esc(a.cod)}</div>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="art-quick-precio">${a.precio?fmt(parseFloat(a.precio)):''}</span>
@@ -4434,6 +4586,7 @@ document.addEventListener('input', (e) => {
 
 // Aviso antes de cerrar / recargar si hay cambios sin guardar
 window.addEventListener('beforeunload', (e) => {
+  if (hayCambiosSinGuardar && typeof autoGuardarDocumento === 'function' && autoGuardarDocumento()) return;
   if (hayCambiosSinGuardar) {
     guardarBorrador(); // guardar por si acaso
     e.preventDefault();
@@ -4444,11 +4597,89 @@ window.addEventListener('beforeunload', (e) => {
 // Al guardar en historial, ya no hay cambios "perdibles"
 const _guardarEnHistorialOriginal = guardarEnHistorial;
 guardarEnHistorial = function() {
+  clearTimeout(autoDocTimer);
   _guardarEnHistorialOriginal();
   hayCambiosSinGuardar = false;
   actualizarIndicadorGuardado();
   descartarBorrador();
 };
+
+// ── AUTOGUARDADO EN EL HISTORIAL ─────────────────────────────────────────────
+// Todos los documentos, SALVO LAS FACTURAS, se guardan solos 4 s después de
+// dejar de editarlos. Un documento nuevo solo se autoguarda cuando ya tiene
+// cliente o alguna línea (para no llenar el historial de documentos vacíos).
+// Las facturas siguen con guardado manual, con aviso si sales sin guardar.
+let autoDocTimer = null;
+function _docTieneContenido() {
+  if ((document.getElementById('cliente_nombre').value || '').trim()) return true;
+  return (lineas || []).some(l => l.tipo === 'linea' && (((l.desc || '').trim()) || parseFloat(l.precio)));
+}
+function _esAutoguardable() { return tipoActual !== 'FACTURA' && _docTieneContenido(); }
+function _marcarAutoguardado() {
+  const btn = document.getElementById('btnGuardar');
+  if (!btn) return;
+  const hora = new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+  btn.title = 'Guardado automáticamente a las ' + hora;
+  let ok = document.getElementById('dotAutoOk');
+  if (!ok) {
+    ok = document.createElement('span'); ok.id = 'dotAutoOk';
+    ok.style.cssText = 'position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:#22C55E;border-radius:50%;border:2px solid var(--navy)';
+    btn.appendChild(ok);
+  }
+  ok.style.display = ''; clearTimeout(ok._t); ok._t = setTimeout(() => { ok.style.display = 'none'; }, 2500);
+}
+function autoGuardarDocumento() {
+  clearTimeout(autoDocTimer);
+  if (!hayCambiosSinGuardar || !_esAutoguardable()) return false;
+  const toastOriginal = mostrarToast;
+  mostrarToast = () => {};            // guardado silencioso: sin avisos emergentes
+  try { guardarEnHistorial(); } catch(e) { return false; } // si el almacenamiento está lleno, ya se avisa aparte
+  finally { mostrarToast = toastOriginal; }
+  _marcarAutoguardado();
+  return true;
+}
+// Antes de abandonar el documento actual (abrir otro, nuevo…):
+// devuelve true si se puede salir, false si el usuario prefiere quedarse.
+function _antesDeSalirDelDocumento() {
+  if (!hayCambiosSinGuardar) return true;
+  clearTimeout(autoDocTimer);
+  if (_esAutoguardable()) { autoGuardarDocumento(); return true; }
+  if (tipoActual !== 'FACTURA' || !_docTieneContenido()) return true;
+  if (confirm('Tienes cambios SIN GUARDAR en esta FACTURA.\n\n¿Guardarlos antes de salir?\n\nAceptar = guardar   ·   Cancelar = no guardar')) { guardarEnHistorial(); return true; }
+  return confirm('¿Salir SIN guardar? Los cambios de esta factura se perderán.');
+}
+// Cada cambio programa el autoguardado
+const _marcarCambioOriginal = marcarCambio;
+marcarCambio = function() {
+  _marcarCambioOriginal();
+  clearTimeout(autoDocTimer);
+  autoDocTimer = setTimeout(autoGuardarDocumento, 4000);
+};
+// Abrir otro documento: primero se guarda (o se pregunta, si es factura) el actual
+const _cargarDesdeHistorialOriginal = cargarDesdeHistorial;
+cargarDesdeHistorial = function(id) {
+  if (!_antesDeSalirDelDocumento()) return;
+  _cargarDesdeHistorialOriginal(id);
+  clearTimeout(autoDocTimer);
+  hayCambiosSinGuardar = false; actualizarIndicadorGuardado(); descartarBorrador();
+};
+// Documento nuevo: igual
+const _nuevoDocumentoOriginal = nuevoDocumento;
+nuevoDocumento = function() {
+  if (hayCambiosSinGuardar && !_antesDeSalirDelDocumento()) return;
+  const lineasAntes = lineas;
+  _nuevoDocumentoOriginal();
+  if (lineas !== lineasAntes) { clearTimeout(autoDocTimer); hayCambiosSinGuardar = false; actualizarIndicadorGuardado(); descartarBorrador(); }
+};
+// Los clics en botones del formulario (tipo, estado, borrar línea…) también cuentan como cambio
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('button');
+  if (b && b.closest('.form-panel')) setTimeout(marcarCambio, 0);
+}, true);
+// En el móvil, al cambiar de app o bloquear la pantalla: guardar ya
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && hayCambiosSinGuardar) { guardarBorrador(); autoGuardarDocumento(); }
+});
 
 
 
