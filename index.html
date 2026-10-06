@@ -19,7 +19,7 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg:#F7F8FA; --surface:#FFFFFF; --navy:#1C2B3A; --navy-light:#2A3F54;
-    --green:#2E7D6B; --green-light:#E8F3F1; --text:#1A1A1A; --text-muted:#6B7280;
+    --green:#276E5E; --green-light:#E8F3F1; --text:#1A1A1A; --text-muted:#6B7280;
     --border:#DDE2E8; --border-strong:#B8C4CF;
     --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif;
     --radius:6px; --shadow-md:0 4px 12px rgba(0,0,0,0.10);
@@ -293,15 +293,15 @@
   .estado-btn { padding:4px 12px; border-radius:12px; border:1.5px solid var(--border-strong); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:11px; font-weight:600; cursor:pointer; transition:all 0.15s; }
   .estado-btn:hover { opacity:0.85; }
   .estado-btn.active { color:white; border-color:transparent; }
-  .estado-btn[data-estado="PENDIENTE"].active  { background:#F59E0B; }
+  .estado-btn[data-estado="PENDIENTE"].active  { background:#B45309; }
   .estado-btn[data-estado="ACEPTADO"].active   { background:#10B981; }
   .estado-btn[data-estado="RECHAZADO"].active  { background:#EF4444; }
-  .estado-btn[data-estado="FACTURADO"].active  { background:#6366F1; }
+  .estado-btn[data-estado="FACTURADO"].active  { background:#4F46E5; }
   .hist-item-estado { font-size:9px; font-weight:700; letter-spacing:0.08em; padding:2px 8px; border-radius:10px; color:white; text-transform:uppercase; }
-  .estado-PENDIENTE  { background:#F59E0B; }
+  .estado-PENDIENTE  { background:#B45309; }
   .estado-ACEPTADO   { background:#10B981; }
   .estado-RECHAZADO  { background:#EF4444; }
-  .estado-FACTURADO  { background:#6366F1; }
+  .estado-FACTURADO  { background:#4F46E5; }
   .estado-filter { display:flex; gap:6px; padding:10px 16px 0; flex-wrap:wrap; }
   .estado-filter-btn { padding:3px 10px; border-radius:10px; border:1.5px solid var(--border); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:10px; font-weight:600; cursor:pointer; transition:all 0.15s; }
   .estado-filter-btn:hover { border-color:var(--green); color:var(--green); }
@@ -371,11 +371,11 @@
   .pin-skip:hover { color:#A8BFD0; }
 
   /* CONVERTIR A FACTURA */
-  .btn-convert { background:#EEF2FF; color:#6366F1; border:none; font-family:var(--sans); font-size:11px; font-weight:600; padding:4px 10px; border-radius:4px; cursor:pointer; transition:all 0.15s; }
-  .btn-convert:hover { background:#6366F1; color:white; }
+  .btn-convert { background:#EEF2FF; color:#4F46E5; border:none; font-family:var(--sans); font-size:11px; font-weight:600; padding:4px 10px; border-radius:4px; cursor:pointer; transition:all 0.15s; }
+  .btn-convert:hover { background:#4F46E5; color:white; }
   .convert-strip { background:linear-gradient(135deg,#EEF2FF,#E0E7FF); border:1.5px solid #C7D2FE; border-radius:var(--radius); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .convert-strip p { font-size:12px; color:#4338CA; font-weight:500; }
-  .convert-strip button { background:#6366F1; color:white; border:none; font-family:var(--sans); font-size:12px; font-weight:600; padding:7px 14px; border-radius:var(--radius); cursor:pointer; white-space:nowrap; transition:all 0.15s; }
+  .convert-strip button { background:#4F46E5; color:white; border:none; font-family:var(--sans); font-size:12px; font-weight:600; padding:7px 14px; border-radius:var(--radius); cursor:pointer; white-space:nowrap; transition:all 0.15s; }
   .convert-strip button:hover { background:#4338CA; }
 
 
@@ -404,7 +404,7 @@
   .cli-item-del:hover { color:#EF4444; }
 
   /* VÍNCULO PRESUPUESTO→FACTURA */
-  .vinculo-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; color:#6366F1; background:#EEF2FF; padding:2px 8px; border-radius:10px; margin-top:4px; }
+  .vinculo-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; color:#4F46E5; background:#EEF2FF; padding:2px 8px; border-radius:10px; margin-top:4px; }
 
   /* VALIDEZ */
   .validez-info { font-size:10px; color:var(--text-muted); margin-top:3px; }
@@ -435,7 +435,7 @@
   .linea-row.drag-target-line { box-shadow:inset 0 2px 0 var(--green); }
   .linea-acciones { display:flex; gap:2px; align-items:center; justify-content:flex-end; }
   .btn-dup { background:none; border:none; cursor:pointer; color:#CBD5E1; font-size:13px; padding:2px; line-height:1; transition:color 0.15s; }
-  .btn-dup:hover { color:#6366F1; }
+  .btn-dup:hover { color:#4F46E5; }
 
 
   /* BLOQUES / SECCIONES (accesible) */
@@ -481,6 +481,10 @@
     .logo-text #headerVersion { font-size:11px; }
     .header-sep { display:none; }
     .header-actions { width:100%; overflow-x:visible; flex-wrap:wrap; gap:7px; padding:4px 0 2px; flex:none; justify-content:center; }
+    .solo-escritorio { display:none !important; }
+    .solo-movil { display:inline-flex !important; }
+    .menu-hdr { left:8px; right:8px; top:100%; }
+    .menu-hdr .header-sep { display:block; }
     .btn-header { font-size:13px; padding:9px 13px; flex:0 0 auto; }
 
     /* Campos más grandes para el dedo */
@@ -516,7 +520,7 @@
     .linea-grip { display:none; } /* reordenar por arrastre no va bien en móvil; usar flechas */
     .linea-acciones { position:static; display:flex; gap:8px; margin-top:10px; justify-content:flex-end; }
     .btn-dup, .btn-del { font-size:15px; padding:10px 16px; border-radius:8px; background:white; border:1.5px solid var(--border); }
-    .btn-dup { color:#6366F1; }
+    .btn-dup { color:#4F46E5; }
     .btn-del { color:#DC2626; }
     .m-mover { display:flex; gap:6px; }
     .btn-mover { font-size:15px; padding:10px 14px; border-radius:8px; background:white; border:1.5px solid var(--border); color:var(--text-muted); cursor:pointer; }
@@ -567,6 +571,43 @@
     .linea-row .m-field-row { grid-template-columns:1fr; }
     .btn-header { font-size:12px; padding:8px 11px; }
   }
+
+  /* ── Cabecera: menú "☰ Más" ── */
+  .solo-movil { display:none !important; }
+  .menu-hdr { display:none; position:absolute; top:calc(100% - 4px); right:12px; z-index:300; flex-direction:column; align-items:stretch; gap:6px;
+              background:var(--navy); padding:10px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.35); min-width:210px; }
+  body.menu-hdr-abierto .menu-hdr { display:flex; }
+  .menu-hdr .btn-header { width:100%; text-align:left; }
+  .menu-hdr .header-sep { width:100%; height:1px; margin:2px 0; }
+  @media (min-width: 1750px) {           /* pantallas muy anchas: todo a la vista, sin menú */
+    .hdr-menu-btn { display:none !important; }
+    .menu-hdr { display:contents !important; }
+    .menu-hdr .btn-header { width:auto; }
+    .menu-hdr .header-sep { width:1px; height:22px; margin:0 3px; }
+    .menu-hdr .solo-movil { display:none !important; }
+  }
+  /* ── Contraste suficiente ── */
+  body.dark .btn-pdf { background:#2E7D6B; }
+  .creditos-pie { opacity:1; }
+  /* ── Formulario compacto en pantallas anchas ── */
+  @media (min-width: 1100px) {
+    .grid-datos { grid-template-columns:repeat(4, 1fr); }
+    .grid-datos .full { grid-column:span 2; }
+    .grid-datos #validezWrap { grid-column:span 1; order:4; }
+    .grid-datos .campo-idioma { order:5; }
+    .grid-datos .campo-notas { order:6; }
+    .grid-cliente { grid-template-columns:repeat(4, 1fr); }
+    .grid-cliente .full { grid-column:span 2; }
+    .totales-y-pago { display:grid !important; grid-template-columns:1fr minmax(360px, 460px); gap:36px; align-items:start; }
+    .totales-y-pago > .bloque-totales { order:2; }
+    .totales-y-pago > .bloque-pago { order:1; }
+    .totales-y-pago .divider-interno { display:none; }
+  }
+  .totales-y-pago { display:flex; flex-direction:column; gap:24px; }
+
+  body.modo-pedido .campo-forma-pago { display:none; }
+
+  @media (max-width:900px) { .menu-hdr .solo-movil { display:block !important; } }
 </style>
 </head>
 <body>
@@ -647,27 +688,32 @@
     <div class="logo-text"><span id="headerNombreEmpresa">Muebles <span>Carrascosa</span></span><span id="headerVersion" style="font-size:10px;font-weight:600;color:#7E93A8;margin-left:7px;letter-spacing:0.02em"></span></div>
   </div>
   <div class="header-actions">
-    <button class="btn-header btn-config" onclick="abrirConfig()">⚙ Empresa</button>
-    <button class="btn-header btn-config" onclick="abrirArticulos()">📦 Artículos</button>
-    <button class="btn-header btn-config" onclick="abrirClientes()">👤 Clientes</button>
-    <button class="btn-header btn-config" onclick="document.getElementById('importExcelInput').click()" title="Importar presupuesto desde Excel" style="background:#1D6F42;color:white;border-color:#1D6F42">📊 Importar Excel</button>
-    <input type="file" id="importExcelInput" accept=".xlsx,.xls" multiple style="display:none" onchange="importarExcel(event)">
-    <span class="header-sep"></span>
-    <button class="btn-header btn-new" onclick="nuevoDocumento()">+ Nuevo</button>
+    <button class="btn-header btn-new solo-escritorio" onclick="nuevoDocumento()">+ Nuevo</button>
     <button class="btn-header btn-save" onclick="guardarEnHistorial()" id="btnGuardar" style="position:relative">💾 Guardar<span id="dotSinGuardar" style="display:none;position:absolute;top:-4px;right:-4px;width:10px;height:10px;background:#F59E0B;border-radius:50%;border:2px solid var(--navy)"></span></button>
-    <button class="btn-header btn-hist" onclick="abrirHistorial()">
+    <button class="btn-header btn-hist solo-escritorio" onclick="abrirHistorial()">
       📋 Historial
       <span class="hist-badge" id="histBadge" style="display:none">0</span>
     </button>
-    <button class="btn-header btn-config" onclick="copiarResumen()" title="Copiar resumen al portapapeles">📋 Copiar</button>
     <span class="header-sep"></span>
     <button class="btn-header btn-pdf" onclick="generarPDF()">⬇ PDF</button>
-    <button class="btn-header btn-print" onclick="generarPDF('imprimir')">🖨 Imprimir</button>
-    <button class="btn-header btn-save" onclick="exportarExcel()" style="background:#1D6F42;color:white;border-color:#1D6F42">⬇ Excel</button>
-    <button class="btn-header btn-save" onclick="compartirWhatsApp()" style="background:#25D366;color:white;border-color:#25D366" title="Compartir por WhatsApp">💬 WhatsApp</button>
-    <button class="btn-header btn-save" onclick="compartirEmail()" style="background:#2563EB;color:white;border-color:#2563EB" title="Enviar por email">✉ Email</button>
-    <span class="header-sep"></span>
-    <button class="btn-header btn-config" onclick="toggleDarkMode()" id="btnDark" title="Modo claro / oscuro">🌙</button>
+    <button class="btn-header btn-save" onclick="compartirWhatsApp()" style="background:#1A7F45;color:white;border-color:#1A7F45" title="Compartir por WhatsApp">💬 WhatsApp</button>
+    <button class="btn-header btn-config hdr-menu-btn" id="btnMenuHdr" onclick="toggleMenuHdr(event)" aria-haspopup="true" aria-expanded="false" title="Más opciones">☰ Más</button>
+    <div class="menu-hdr" id="menuHdr">
+      <button class="btn-header btn-new solo-movil" onclick="nuevoDocumento()">+ Nuevo</button>
+      <button class="btn-header btn-hist solo-movil" onclick="abrirHistorial()">📋 Historial</button>
+      <button class="btn-header btn-print" onclick="generarPDF('imprimir')">🖨 Imprimir</button>
+      <button class="btn-header btn-config" onclick="compartirEmail()" title="Enviar por email">✉ Email</button>
+      <button class="btn-header btn-config" onclick="copiarResumen()" title="Copiar resumen al portapapeles">📋 Copiar</button>
+      <button class="btn-header btn-config" onclick="exportarExcel()">⬇ Excel</button>
+      <span class="header-sep"></span>
+      <button class="btn-header btn-config" onclick="abrirClientes()">👤 Clientes</button>
+      <button class="btn-header btn-config" onclick="abrirArticulos()">📦 Artículos</button>
+      <button class="btn-header btn-config" onclick="document.getElementById('importExcelInput').click()" title="Importar presupuesto desde Excel">📊 Importar Excel</button>
+      <button class="btn-header btn-config" onclick="abrirConfig()">⚙ Empresa</button>
+      <span class="header-sep"></span>
+      <button class="btn-header btn-config" onclick="toggleDarkMode()" id="btnDark" title="Modo claro / oscuro">🌙 Modo oscuro</button>
+    </div>
+    <input type="file" id="importExcelInput" accept=".xlsx,.xls" multiple style="display:none" onchange="importarExcel(event)">
   </div>
 </header>
 
@@ -1100,7 +1146,7 @@
 
     <div>
       <div class="section-label">Datos del documento</div>
-      <div class="fields-grid">
+      <div class="fields-grid grid-datos">
         <div class="field-group mono">
           <label>Número</label>
           <input type="text" id="numero" placeholder="2025-001" oninput="actualizarPreview()">
@@ -1119,11 +1165,11 @@
           <input type="number" id="validez_dias" placeholder="40" min="0" step="1" value="40" oninput="actualizarPreview()">
           <div class="validez-info" id="validezInfo"></div>
         </div>
-        <div class="field-group full">
+        <div class="field-group full campo-notas">
           <label>🔒 Notas internas (privadas · NO salen en el PDF)</label>
           <textarea id="notas_internas" rows="2" placeholder="Recordatorios, condiciones habladas, lo que sea... solo para ti" oninput="actualizarPreview()" style="background:#FFFBEA;border-color:#E8D98A"></textarea>
         </div>
-        <div class="field-group">
+        <div class="field-group campo-idioma">
           <label>Idioma del PDF</label>
           <select id="idioma_pdf" onchange="actualizarPreview()" style="width:100%;padding:10px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-family:var(--sans);cursor:pointer">
             <option value="es">Español</option>
@@ -1143,7 +1189,7 @@
         <div class="section-label" id="labelCliente">Cliente</div>
         <button class="btn-guardar-cliente" onclick="guardarClienteActual()">+ Guardar en agenda</button>
       </div>
-      <div class="fields-grid">
+      <div class="fields-grid grid-cliente">
         <div class="field-group full cliente-autocomplete">
           <label>Nombre / Razón social</label>
           <input type="text" id="cliente_nombre" placeholder="Nombre del cliente" autocomplete="off"
@@ -1211,7 +1257,8 @@
 
     <hr class="divider">
 
-    <div>
+    <div class="totales-y-pago">
+    <div class="bloque-totales">
       <div class="section-label">Totales</div>
       <div class="totales-form">
         <div class="total-row"><label>Subtotal</label><div class="val" id="f_subtotal">0,00 €</div></div>
@@ -1235,12 +1282,9 @@
         <div class="total-row grand" id="pendienteRow" style="display:none"><label>PENDIENTE</label><div class="val" id="f_pendiente">0,00 €</div></div>
       </div>
     </div>
-
-    <hr class="divider">
-
-    <div>
+    <div class="bloque-pago">
       <div class="section-label">Forma de pago y observaciones</div>
-      <div class="field-group">
+      <div class="field-group campo-forma-pago">
         <label>Forma de pago</label>
         <textarea id="forma_pago" rows="2" placeholder="Ej: Transferencia bancaria — 50% a la firma, 50% a la entrega" oninput="actualizarPreview()"></textarea>
         <button onclick="abrirSelectorCuentas()" id="btnInsertarCuenta" style="margin-top:6px;font-size:13px;font-weight:600;padding:8px 14px;background:var(--green-light);color:var(--green);border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--sans)">🏦 Insertar cuenta bancaria</button>
@@ -1249,6 +1293,7 @@
         <label>Observaciones</label>
         <textarea id="observaciones" rows="2" placeholder="Notas adicionales..." oninput="actualizarPreview()"></textarea>
       </div>
+    </div>
     </div>
 
     <hr class="divider">
@@ -1261,7 +1306,7 @@
         <div class="img-drop-zone-text">
           <span>🖼</span>
           Haz clic o arrastra imágenes aquí<br>
-          <span style="font-size:11px;color:var(--border-strong)">JPG, PNG · Aparecerán al final del PDF</span>
+          <span style="font-size:11px;color:var(--text-muted)">JPG, PNG · Aparecerán al final del PDF</span>
         </div>
       </div>
       <input type="file" id="imgFileInput" accept="image/*" multiple onchange="imgFileSelected(event)" style="display:none">
@@ -1351,7 +1396,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.37';
+const APP_VERSION = 'v5.38';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
@@ -2085,7 +2130,7 @@ function renderLineas() {
           </div>
           <div class="m-field">
             <label>IVA</label>
-            <select onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
+            <select aria-label="IVA de la línea" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
           </div>
         </div>
         <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
@@ -2118,7 +2163,7 @@ function renderLineas() {
         <input type="number" class="num" placeholder="0" value="${l.cant}" min="0" step="1" oninput="updateLinea(${l.id},'cant',this.value)">
         <input type="number" class="num col-precio" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
         <input type="number" class="num col-dto" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" title="Descuento % solo de esta línea" oninput="updateLinea(${l.id},'dto',this.value)">
-        <select class="linea-iva-select col-iva" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
+        <select class="linea-iva-select col-iva" aria-label="IVA de la línea" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))" onkeydown="tabEnPrecio(event, ${l.id})">${ivaOpts}</select>
         <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
         <div class="linea-acciones">
           <button class="btn-dup" tabindex="-1" onclick="duplicarLinea(${l.id})" title="Duplicar línea">⧉</button>
@@ -2790,7 +2835,7 @@ function actualizarBotonGuardar() {
   const dot = document.getElementById('dotSinGuardar');
   if (documentoEnEdicion) {
     btn.firstChild.textContent = '🔄 Actualizar';
-    btn.style.background = '#6366F1'; btn.style.borderColor = '#6366F1'; btn.style.color = 'white';
+    btn.style.background = '#4F46E5'; btn.style.borderColor = '#4F46E5'; btn.style.color = 'white';
   } else {
     btn.firstChild.textContent = '💾 Guardar';
     btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
@@ -2933,7 +2978,7 @@ function renderHistorial(){
         <span class="hist-item-total">${fmt(d.total||0)}</span>
         <div class="hist-item-actions">
           <button class="btn-hist-action btn-hist-load" onclick="cargarDesdeHistorial(${d.id})">Cargar</button>
-          <button class="btn-hist-action" style="background:#EEF2FF;color:#6366F1" onclick="duplicarDesdeHistorial(${d.id},event)">Duplicar</button>
+          <button class="btn-hist-action" style="background:#EEF2FF;color:#4F46E5" onclick="duplicarDesdeHistorial(${d.id},event)">Duplicar</button>
           <button class="btn-hist-action btn-hist-del" onclick="eliminarDelHistorial(${d.id},event)">Eliminar</button>
         </div>
       </div>
@@ -2953,16 +2998,19 @@ function cargarDesdeHistorial(id){
 
 // ── BACKUP ────────────────────────────────────────────────────────────────────
 function exportarBackup(){
-  const h=getHistorial(); if(!h.length){mostrarToast('No hay documentos que exportar');return;}
-  const datos={version:1,exportadoEn:new Date().toISOString(),documentos:h};
+  // Copia COMPLETA: documentos + clientes + artículos + datos de empresa
+  const h=getHistorial(), cli=getClientes();
+  let arts=[]; try { arts=JSON.parse(localStorage.getItem(ART_KEY)||'[]'); } catch(e){}
+  const cfg=getConfig();
+  if(!h.length && !cli.length && !arts.length){mostrarToast('No hay datos que exportar');return;}
+  const datos={version:2,exportadoEn:new Date().toISOString(),documentos:h,clientes:cli,articulos:arts,config:cfg};
   const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download=`mc_historial_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.href=url; a.download=`mc_copia_completa_${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  // Registrar fecha del último backup y ocultar el aviso
   try { localStorage.setItem('mc_ultimo_backup', new Date().toISOString()); } catch(e){}
   ocultarAvisoBackup();
-  mostrarToast(`✓ Backup exportado (${h.length} docs)`,true);
+  mostrarToast(`✓ Copia exportada: ${h.length} documentos, ${cli.length} clientes, ${arts.length} artículos y datos de empresa`,true);
 }
 
 // ── RECORDATORIO DE COPIA DE SEGURIDAD ────────────────────────────────────────
@@ -3016,13 +3064,28 @@ function importarBackup(event){
   reader.onload=e=>{
     try{
       const datos=JSON.parse(e.target.result);
-      let docs=Array.isArray(datos)?datos:(datos.documentos||[]);
-      if(!docs.length){mostrarToast('El archivo no contiene documentos');return;}
-      const h=getHistorial(), ids=new Set(h.map(x=>x.id));
-      const nuevos=docs.filter(d=>!ids.has(d.id));
-      saveHistorial([...nuevos,...h]); renderHistorial();
-      mostrarToast(`✓ ${nuevos.length} documentos importados`,true);
-    }catch{mostrarToast('Error al leer el archivo');}
+      // Añade lo que falte; nunca pisa lo que ya tienes
+      const anadir=(actuales,entrantes)=>{ const ids=new Set(actuales.map(x=>x.id)); const nuevos=(entrantes||[]).filter(x=>x&&!ids.has(x.id)); return {lista:[...nuevos,...actuales], n:nuevos.length}; };
+      const docs=Array.isArray(datos)?datos:(datos.documentos||[]);
+      const rD=anadir(getHistorial(),docs); if(rD.n) saveHistorial(rD.lista);
+      let nC=0,nA=0,cfgRest=false;
+      if(Array.isArray(datos.clientes)){ const r=anadir(getClientes(),datos.clientes); if(r.n){ saveClientes(r.lista); nC=r.n; } }
+      if(Array.isArray(datos.articulos)){
+        let act=[]; try{ act=JSON.parse(localStorage.getItem(ART_KEY)||'[]'); }catch(e){}
+        const r=anadir(act,datos.articulos); if(r.n){ localStorage.setItem(ART_KEY,JSON.stringify(r.lista)); nA=r.n; }
+      }
+      if(datos.config && typeof datos.config==='object'){
+        const actual=getConfig();
+        const vacia=!((actual.nombre||'').trim());
+        if(vacia || confirm('La copia incluye los datos de empresa (nombre, logo, cuentas, series).\n\n¿Quieres sustituir los actuales por los de la copia?')){
+          localStorage.setItem(CONFIG_KEY, JSON.stringify(datos.config)); cfgRest=true;
+          try{ cargarConfig(); }catch(e){}
+        }
+      }
+      try{ renderHistorial(); }catch(e){} try{ cargarClientes(); }catch(e){} try{ cargarArticulos(); }catch(e){} try{ renderAccesoRapido(); actualizarBadge(); }catch(e){}
+      const partes=[`${rD.n} documentos`]; if(nC) partes.push(`${nC} clientes`); if(nA) partes.push(`${nA} artículos`); if(cfgRest) partes.push('datos de empresa');
+      mostrarToast(`✓ Restaurado: ${partes.join(', ')}`,true);
+    }catch(err){mostrarToast('Error al leer el archivo');}
   };
   reader.readAsText(file); event.target.value='';
 }
@@ -3057,7 +3120,7 @@ function saneaParaPDF(s) {
   return (s || '')
     .replace(/≥/g, '>=').replace(/≤/g, '<=')
     .replace(/[""]/g, '"').replace(/['']/g, "'")
-    .replace(/[—–]/g, '-')
+    .replace(/[—–\u2212]/g, '-')
     .replace(/…/g, '...')
     .replace(/[\u00A0\u202F]/g, ' ');
 }
@@ -3145,147 +3208,183 @@ async function _generarPDFreal(accionPDF){
   col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
   doc.text(tipo,badgeX-badgeW/2,13,{align:'center'});
 
-  y=37;
+  // ── Datos: tres cajas en una fila — Cliente | NIF | Documento ──
   const numero=document.getElementById('numero').value||'—',fecha=document.getElementById('fecha').value,ref=document.getElementById('referencia').value;
-  col(muted); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-  const metaX=W-mr;
-  doc.text(`${T('numero')}: ${numero}`,metaX,y,{align:'right'}); y+=5;
-  doc.text(`${T('fecha')}: ${fecha?formatFecha(fecha):'—'}`,metaX,y,{align:'right'});
-  if(ref){y+=5;doc.text(`${T('ref')}: ${ref}`,metaX,y,{align:'right'});}
-  // Validez (solo presupuesto / proforma)
+  const nif=document.getElementById('cliente_nif').value,dir=document.getElementById('cliente_dir').value,pob=document.getElementById('cliente_pob').value;
+  const cY=37, gapC=4, wCli=84, wNif=40, wDoc=W-ml-mr-wCli-wNif-2*gapC;
+  const xNif=ml+wCli+gapC, xDoc=xNif+wNif+gapC;
+  const docTxt=[`${T('fecha')}: ${fecha?formatFecha(fecha):'—'}`];
   if(tipoActual==='PRESUPUESTO'||tipoActual==='FACTURA PROFORMA'){
     const diasV=parseInt(document.getElementById('validez_dias').value);
-    if(diasV&&fecha){
-      const fv=new Date(fecha); fv.setDate(fv.getDate()+diasV);
-      y+=5; doc.text(`${T('validoHasta')}: ${formatFecha(fv.toISOString().split('T')[0])}`,metaX,y,{align:'right'});
-    }
+    if(diasV&&fecha){ const fv=new Date(fecha); fv.setDate(fv.getDate()+diasV); docTxt.push(`${T('validoHasta')}: ${formatFecha(fv.toISOString().split('T')[0])}`); }
   }
-  // Vínculo a presupuesto original
-  if(documentoVinculo&&documentoVinculo.numero){
-    y+=5; col([99,102,241]); doc.setFont('helvetica','bold');
-    doc.text(`${T('refPresupuesto')}: ${documentoVinculo.numero}`,metaX,y,{align:'right'});
-    col(muted); doc.setFont('helvetica','normal');
-  }
-
-  const cY=59;
-  fill(lightgray); stroke(borderC); doc.setLineWidth(0.3); doc.rect(ml,cY,90,26,'FD');
+  if(documentoVinculo&&documentoVinculo.numero) docTxt.push(`${T('refPresupuesto')}: ${documentoVinculo.numero}`);
+  if(ref) docTxt.push(`${T('ref')}: ${ref}`);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  const docL=[]; docTxt.forEach(t=>envolverTexto(doc,t,wDoc-8).forEach(x=>docL.push(x)));
+  doc.setFontSize(10);
+  const cliL=[]; [dir,pob].filter(Boolean).forEach(t=>envolverTexto(doc,t,wCli-8).forEach(x=>cliL.push(x)));
+  const boxH=Math.max(26, 15+docL.length*4.2+2, 15+cliL.length*4.6+1);
+  fill(lightgray); stroke(borderC); doc.setLineWidth(0.3);
+  doc.rect(ml,cY,wCli,boxH,'FD'); doc.rect(xNif,cY,wNif,boxH,'FD'); doc.rect(xDoc,cY,wDoc,boxH,'FD');
+  // Cliente (o proveedor)
   col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text((tipoActual==='NOTA DE PEDIDO'?'PROVEEDOR':T('cliente')),ml+4,cY+5);
   col(black); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-  doc.text(document.getElementById('cliente_nombre').value||'—',ml+4,cY+11,{maxWidth:84});
+  doc.text(saneaParaPDF(document.getElementById('cliente_nombre').value||'—'),ml+4,cY+11,{maxWidth:wCli-8});
   doc.setFont('helvetica','normal'); doc.setFontSize(10); col(muted);
-  const dir=document.getElementById('cliente_dir').value,pob=document.getElementById('cliente_pob').value,nif=document.getElementById('cliente_nif').value;
-  if(dir) doc.text(dir,ml+4,cY+17,{maxWidth:84});
-  if(pob) doc.text(pob,ml+4,cY+22,{maxWidth:84});
-  fill(lightgray); doc.rect(ml+94,cY,56,26,'FD');
-  col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(T('nifRef'),ml+98,cY+5);
-  col(black); doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.text(nif||'—',ml+98,cY+13);
-  doc.setFontSize(10); col(muted); if(ref) doc.text(ref,ml+98,cY+19,{maxWidth:50});
-
-  y=cY+32;
-  fill(navy); doc.rect(ml,y,W-ml-mr,7,'F');
-  col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-  // ¿Es una nota de pedido? -> sin precios, la descripción ocupa casi todo el ancho
+  cliL.forEach((t,k)=>doc.text(t,ml+4,cY+17+k*4.6));
+  // NIF
+  col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(T('nifCif'),xNif+4,cY+5);
+  col(black); doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.text(nif||'—',xNif+4,cY+12,{maxWidth:wNif-8});
+  // Documento: número destacado + fecha, validez, referencia
+  col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text(T('numero').toUpperCase(),xDoc+4,cY+5);
+  col(black); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(numero,xDoc+4,cY+11.5,{maxWidth:wDoc-8});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); col([75,85,99]);
+  docL.forEach((t,k)=>doc.text(t,xDoc+4,cY+17+k*4.2));
+  y=cY+boxH+6;
+  // Columnas. La descripción se lleva el máximo ancho posible.
+  //  · Nota de pedido: sin precios (código, descripción, cantidad)
+  //  · Todas las líneas con el mismo IVA: sin columna IVA (ya figura en los totales)
   const esPedido = (tipoActual === 'NOTA DE PEDIDO');
-  const cols = esPedido
-    ? {cod:ml+2, desc:ml+21, cant:W-mr-2, precio:W-mr-58, iva:W-mr-32, imp:W-mr-2}
-    : {cod:ml+2, desc:ml+21, cant:W-mr-86, precio:W-mr-58, iva:W-mr-32, imp:W-mr-2};
-  doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
-  if (esPedido) {
-    doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'});
-  } else {
-    doc.text(T('cantidad'),cols.cant,y+4.8,{align:'right'}); doc.text(T('precio'),cols.precio,y+4.8,{align:'right'}); doc.text(T('iva'),cols.iva,y+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,y+4.8,{align:'right'});
-  }
+  const ivaDe = l => (l.iva===undefined||l.iva===null) ? ivaPorDefecto() : l.iva;
+  const tiposIvaLin = new Set(lineas.filter(l=>l.tipo==='linea'&&(l.desc||l.cant||l.precio)).map(ivaDe));
+  const mostrarIva = !esPedido && tiposIvaLin.size > 1;
+  const cols = esPedido ? {cod:ml+2, desc:ml+21, cant:W-mr-2, precio:0, iva:0, imp:0}
+    : mostrarIva ? {cod:ml+2, desc:ml+21, cant:W-mr-58, precio:W-mr-36, iva:W-mr-26, imp:W-mr-2}
+    : {cod:ml+2, desc:ml+21, cant:W-mr-48, precio:W-mr-26, iva:0, imp:W-mr-2};
+  const pintarCabeceraColumnas = (yy) => {
+    fill(navy); doc.rect(ml,yy,W-ml-mr,7,'F');
+    col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    doc.text(T('codigo'),cols.cod,yy+4.8); doc.text(T('descripcion'),cols.desc,yy+4.8);
+    doc.text(T('cantidad'),cols.cant,yy+4.8,{align:'right'});
+    if(!esPedido){ doc.text(T('precio'),cols.precio,yy+4.8,{align:'right'}); if(mostrarIva) doc.text(T('iva'),cols.iva,yy+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,yy+4.8,{align:'right'}); }
+  };
+  // Página de continuación (mini-cabecera); con o sin cabecera de columnas
+  const nuevaPaginaCont = (conColumnas) => {
+    doc.addPage();
+    const cfgPag = getConfig();
+    const nombreEmpresa = (cfgPag.nombre || 'Mi Empresa').toUpperCase();
+    const numDoc = document.getElementById('numero').value.trim();
+    const cliDoc = document.getElementById('cliente_nombre').value.trim();
+    fill(navy); doc.rect(0, 0, W, 10, 'F');
+    col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    doc.text(nombreEmpresa, ml, 6.5);
+    col([168,191,208]); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    doc.text(`${tipoTraducido()} ${numDoc}${cliDoc ? '  ·  ' + cliDoc : ''}  (cont.)`, W - mr, 6.5, {align:'right', maxWidth: W - ml - mr - 45});
+    y = 16;
+    if (conColumnas) { pintarCabeceraColumnas(y); y += 7; }
+  };
+  pintarCabeceraColumnas(y);
   y+=7;
 
   // Construir secuencia de filas a pintar: bloques (con subtotal) + líneas normales
+  // Partes de aseguradora: una línea con expediente (o dirección) abre un grupo,
+  // y las líneas siguientes pertenecen a ese expediente hasta el siguiente.
   const filasPdf = [];
+  let expActual = null;
   lineas.forEach((l, idx) => {
     if (l.tipo === 'bloque') {
+      expActual = null;
       if (!(l.titulo && l.titulo.trim())) return;
       const sub = subtotalBloque(idx);
       filasPdf.push({ tipo:'bloque', titulo:l.titulo, sub });
     } else if (l.desc || l.cant || l.precio) {
+      const refP = (l.refParte||'').trim(), dirP = (l.dirParte||'').trim();
+      if (refP || dirP) { expActual = { tipo:'expediente', ref:refP, dir:dirP, total:0 }; filasPdf.push(expActual); }
+      if (expActual) expActual.total += importeLineaNum(l);
       filasPdf.push({ tipo:'linea', l });
     }
   });
 
   const hayBloques = filasPdf.some(f => f.tipo==='bloque');
   // Si no hay bloques, mantener relleno mínimo de 8 filas como antes
-  const totalFilas = hayBloques ? filasPdf.length : Math.max(filasPdf.length, 8);
+  const totalFilas = filasPdf.length; // sin filas vacías de relleno
 
+  // Franja de expediente de aseguradora (cont=true: repetida al empezar página)
+  let expEnCurso = null;
+  const dibujarFranjaExp = (f, cont) => {
+    const subTxt = (!cont && !esPedido && f.total > 0) ? `${T('subtotalExp')}: ${fmt(f.total)}` : '';
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    const anchoSub = subTxt ? doc.getTextWidth(subTxt) + 6 : 0;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    const etiq = f.ref ? `${T('expediente')} ${f.ref}` : '';
+    const anchoEtiq = etiq ? doc.getTextWidth(etiq) + 4 : 0;
+    doc.setFont('helvetica','normal');
+    const dirTxt = (f.dir || '') + (cont ? '  (cont.)' : '');
+    const dirL = dirTxt.trim() ? envolverTexto(doc, dirTxt.trim(), W-ml-mr-6-anchoEtiq-anchoSub) : [];
+    const expH = Math.max(7, dirL.length * 3.8 + 3.4);
+    if (!cont && y + expH + 9 > H - 24) { nuevaPaginaCont(true); }
+    fill([234,239,245]); doc.rect(ml, y, W-ml-mr, expH, 'F');
+    fill(navy); doc.rect(ml, y, 1.2, expH, 'F');
+    col(navy); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    if (etiq) doc.text(etiq, ml+3, y+4.7);
+    col([55,65,81]); doc.setFont('helvetica','normal');
+    dirL.forEach((t,k) => doc.text(t, ml+3+anchoEtiq, y+4.7+k*3.8));
+    if (subTxt) { doc.setFontSize(7.5); col([75,85,99]); doc.text(subTxt, W-mr-2, y+4.7, {align:'right'}); }
+    y += expH;
+  };
   let zebra = 0;
   for(let i=0;i<totalFilas;i++){
     const f = filasPdf[i];
+    if (f && f.tipo === 'expediente') {
+      dibujarFranjaExp(f, false);
+      expEnCurso = f; zebra = 0;
+      continue;
+    }
     if (f && f.tipo === 'bloque') {
+      expEnCurso = null;
       // Banda de bloque (azul) — la altura crece si el título ocupa varias líneas
       doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
       const lineasTit = envolverTexto(doc, (f.titulo||'').toUpperCase(), W-ml-mr-62);
       const blkH = Math.max(6.2, lineasTit.length * 3.4 + 2.8);
+      if (y + blkH + 9 > H - 24) nuevaPaginaCont(true);
       fill(navy); doc.rect(ml,y,W-ml-mr,blkH,'F');
       col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
       lineasTit.forEach((ln, idx) => doc.text(ln, ml+2, y+4.2+idx*3.4, {align:'left'}));
       // Subtotal del bloque a la derecha
       if (f.sub.baseSinIva > 0) {
         doc.setFont('helvetica','normal'); doc.setFontSize(7); col([255,255,255]);
-        doc.text(`${T('subtotalBloque')}: ${fmt(f.sub.baseSinIva)}  ·  ${T('iva')}: ${fmt(f.sub.conIva)}`, W-mr-2, y+4.2, {align:'right'});
+        doc.text(`${T('subtotalBloque')}: ${fmt(f.sub.baseSinIva)}  ·  ${T('conIva')}: ${fmt(f.sub.conIva)}`, W-mr-2, y+4.2, {align:'right'});
       }
       y += blkH;
       zebra = 0;
       continue;
     }
     // Altura de fila ADAPTATIVA: depende de cuántas líneas ocupe la descripción
-    const anchoDesc = cols.cant - cols.desc - 6;
-    let lineasDesc = [''];
+    const anchoDesc = cols.cant - cols.desc - 10;
+    let lineasDesc = [''], lineasParte = [];
     if (f && f.tipo === 'linea') {
       doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
-      // Partimos el texto NOSOTROS midiendo cada palabra (no usamos splitTextToSize,
-      // que a veces devuelve líneas con espacios metidos entre letras -> texto estirado).
-      lineasDesc = envolverTexto(doc, descConParte(f.l), anchoDesc);
-      if (!lineasDesc.length) lineasDesc = [''];
+      let dTxt = f.l.desc || '';
+      const dDto = parseFloat(f.l.dto) || 0;
+      if (dDto > 0) dTxt += ' (dto. ' + fmtNum(dDto) + '%)';
+      // Partimos el texto NOSOTROS midiendo cada palabra (evita texto estirado)
+      lineasDesc = envolverTexto(doc, dTxt, anchoDesc);
+      if (!lineasDesc.length && !lineasParte.length) lineasDesc = [''];
     }
-    const alturaTexto = lineasDesc.length * 4.6;      // ~4.6 pt por línea de texto a 10.5pt
+    const alturaTexto = lineasDesc.length * 4.9;
     const rowH = Math.max(8, alturaTexto + 3.5);       // margen arriba/abajo, mínimo 8
     // Salto de página si la fila no cabe (deja hueco para totales/pie)
-    if (y + rowH > H - 45) {
-      doc.addPage();
-      y = 12;
-      // Mini-cabecera de identificación: empresa a la izquierda, documento y cliente a la derecha
-      const cfgPag = getConfig();
-      const nombreEmpresa = (cfgPag.nombre || 'Muebles Carrascosa').toUpperCase();
-      const numDoc = document.getElementById('numero').value.trim();
-      const cliDoc = document.getElementById('cliente_nombre').value.trim();
-      fill(navy); doc.rect(0, 0, W, 10, 'F');
-      col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-      doc.text(nombreEmpresa, ml, 6.5);
-      col([168,191,208]); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-      const refPag = `${tipoActual} ${numDoc}${cliDoc ? '  ·  ' + cliDoc : ''}  (cont.)`;
-      doc.text(refPag, W - mr, 6.5, {align:'right', maxWidth: W - ml - mr - 45});
-      y = 16;
-      // Repetir la cabecera de columnas en la página nueva
-      fill(navy); doc.rect(ml, y, W-ml-mr, 7, 'F');
-      col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      doc.text(T('codigo'),cols.cod,y+5); doc.text(T('descripcion'),cols.desc,y+5);
-      if (esPedido) {
-        doc.text(T('cantidad'),cols.cant,y+5,{align:'right'});
-      } else {
-        doc.text(T('cantidad'),cols.cant,y+5,{align:'right'}); doc.text(T('precio'),cols.precio,y+5,{align:'right'});
-        doc.text(T('iva'),cols.iva,y+5,{align:'right'}); doc.text(T('importe'),cols.imp,y+5,{align:'right'});
-      }
-      y += 7;
+    // Las líneas pueden llegar hasta encima del pie; los totales ya buscan su propio sitio
+    if (y + rowH > H - 24) {
+      nuevaPaginaCont(true);
+      if (expEnCurso) dibujarFranjaExp(expEnCurso, true);
       zebra = 0;
     }
     if(zebra%2===1){fill([250,251,252]);stroke(borderC);doc.rect(ml,y,W-ml-mr,rowH,'F');}
     stroke(borderC);doc.setLineWidth(0.2);doc.line(ml,y+rowH,W-mr,y+rowH);
     if(f && f.tipo==='linea'){
       const l = f.l;
-      col(muted);doc.setFont('courier','normal');doc.setFontSize(9);doc.text(l.cod||'',cols.cod,y+5);
+      col([75,85,99]);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text(saneaParaPDF(l.cod||''),cols.cod,y+5,{maxWidth:cols.desc-cols.cod-2});
+      // Parte (negrita) y descripción, cada renglón alineado a la izquierda
+      let yTxt = y + 5;
+      col(navy);doc.setFont('helvetica','bold');doc.setFontSize(9.5);
+      lineasParte.forEach(ln => { doc.text(ln, cols.desc, yTxt, { align: 'left' }); yTxt += 4.2; });
       col(black);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
-      // Dibujar cada línea alineada a la izquierda (evita que jsPDF estire las letras)
-      lineasDesc.forEach((ln, idx) => {
-        doc.text(ln, cols.desc, y + 5 + idx * 4.6, { align: 'left' });
-      });
+      lineasDesc.forEach(ln => { doc.text(ln, cols.desc, yTxt, { align: 'left' }); yTxt += 4.9; });
       const cant=parseFloat(l.cant)||0,precio=parseFloat(l.precio)||0,imp=importeLineaNum(l);
-      col(black);doc.setFont('courier','normal');
+      // Números en Helvetica: el € se ve en cualquier visor y las cifras miden todas igual
+      col(black);doc.setFont('helvetica','normal');
       // Dibuja un número alineado a la derecha, encogiendo la letra solo si no cabe en 'ancho'
       const numDer = (txt, xDer, ancho) => {
         let fs = 9.5;
@@ -3296,15 +3395,14 @@ async function _generarPDFreal(accionPDF){
       };
       // Ancho disponible para cada número = separación con la columna de su izquierda, con holgura.
       // (cant tiene desde la descripción; el resto, desde la columna numérica anterior)
-      const anchoCant = 26;
-      const anchoPrecio = (cols.precio - cols.cant) + 18;
-      const anchoIva = 16;
-      const anchoImp = (cols.imp - cols.iva) + 24;
+      const anchoCant = 13;
+      const anchoPrecio = cols.precio - cols.cant - 3;
+      const anchoIva = mostrarIva ? cols.iva - cols.precio - 3 : 0;
+      const anchoImp = cols.imp - (mostrarIva ? cols.iva : cols.precio) - 3;
       if(cant) numDer(fmtNum(cant), cols.cant, anchoCant);
       if(!esPedido){
         if(precio) numDer(fmt(precio), cols.precio, anchoPrecio);
-        const ivaL=(l.iva===undefined||l.iva===null)?ivaPorDefecto():l.iva;
-        if(imp) numDer(ivaL+'%', cols.iva, anchoIva);
+        if(imp && mostrarIva) numDer(ivaDe(l)+'%', cols.iva, anchoIva);
         if(imp) numDer(fmt(imp), cols.imp, anchoImp);
       }
     }
@@ -3313,18 +3411,24 @@ async function _generarPDFreal(accionPDF){
   }
   y+=4;
 
-  const t=calcTotales(),totX=W-mr,totLX=totX-76,totRowH=5.5;
+  const t=calcTotales(),totX=W-mr-2,totLX=W-mr-80,totRowH=5.5;
+  // ¿Caben los totales en esta página? Si no, pasar a una nueva (antes se montaban sobre el pie)
+  if(!esPedido){
+    const nTot = 4 + (t.descPct>0?1:0) + Math.max(0,Object.keys(t.ivaPorTipo).length-1) + (t.anticipo>0?2:0);
+    if (y + 4 + nTot*totRowH + 14 > H - 22) { nuevaPaginaCont(false); y += 6; }
+  }
   const drawTotRow=(label,val,grand=false)=>{
-    if(grand){fill(navy);doc.rect(totLX-4,y-3.5,totX-totLX+6,totRowH+1,'F');col([255,255,255]);}
+    if(grand){fill(navy);doc.rect(totLX-4,y-3.5,(W-mr)-(totLX-4),totRowH+1,'F');col([255,255,255]);}
     else col(muted);
     doc.setFont('helvetica',grand?'bold':'normal');doc.setFontSize(grand?11:10);
     doc.text(label,totLX,y+1.5);
-    doc.setFont('courier',grand?'bold':'normal');doc.text(val,totX,y+1.5,{align:'right'});
-    if(!grand) col(black); y+=totRowH;
+    if(!grand) col([55,65,81]);
+    doc.text(val,totX,y+1.5,{align:'right'});
+    col(black); y+=totRowH;
   };
   if(!esPedido){
   drawTotRow(T('subtotal'),fmt(t.subtotal));
-  if(t.descPct>0) drawTotRow(`${T('descuento')} (${t.descPct}%)`,'−'+fmt(t.descImp));
+  if(t.descPct>0) drawTotRow(`${T('descuento')} (${t.descPct}%)`,'- '+fmt(t.descImp));
   drawTotRow(T('baseImponible'),fmt(t.base));
   // Desglose IVA por tipo
   const tiposPdf = Object.keys(t.ivaPorTipo).map(Number).sort((a,b)=>b-a);
@@ -3338,23 +3442,25 @@ async function _generarPDFreal(accionPDF){
   }
   y+=1;drawTotRow(T('total'),fmt(t.total),true);col(black);
   if(t.anticipo>0){
-    y+=1; drawTotRow(T('aCuenta'),'−'+fmt(t.anticipo));
+    y+=1; drawTotRow(T('aCuenta'),'- '+fmt(t.anticipo));
     y+=1; drawTotRow(T('pendiente'),fmt(t.pendiente),true); col(black);
   }
   }
   y+=4;
   // Total en letra (debajo de los totales, alineado a la izquierda)
-  col(muted); doc.setFont('helvetica','italic'); doc.setFontSize(7);
-  const letrasTexto = '# ' + numeroALetras(t.anticipo>0 ? t.pendiente : t.total) + ' #';
-  const letrasLines = doc.splitTextToSize(letrasTexto, W-ml-mr);
-  doc.text(letrasLines, ml, y);
-  doc.setFont('helvetica','normal');
-  y += letrasLines.length*3.5 + 3;
+  if(!esPedido){
+    col(muted); doc.setFont('helvetica','italic'); doc.setFontSize(7);
+    const letrasTexto = '# ' + numeroALetras(t.anticipo>0 ? t.pendiente : t.total) + ' #';
+    const letrasLines = doc.splitTextToSize(letrasTexto, W-ml-mr);
+    doc.text(letrasLines, ml, y);
+    doc.setFont('helvetica','normal');
+    y += letrasLines.length*3.5 + 3;
+  }
   col(black);
 
-  const pago=document.getElementById('forma_pago').value,obs=document.getElementById('observaciones').value;
-  if(pago){stroke(borderC);doc.setLineWidth(0.3);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(T('formaPago'),ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(10);const pl=doc.splitTextToSize(pago,W-ml-mr);doc.text(pl,ml,y);y+=pl.length*4+3;}
-  if(obs){stroke(borderC);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('OBSERVACIONES',ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(10);const ol=doc.splitTextToSize(obs,W-ml-mr);doc.text(ol,ml,y);}
+  const pago=esPedido?'':document.getElementById('forma_pago').value,obs=document.getElementById('observaciones').value;
+  if(pago){doc.setFontSize(10);if(y+12+doc.splitTextToSize(pago,W-ml-mr).length*4>H-22){nuevaPaginaCont(false);y+=4;}stroke(borderC);doc.setLineWidth(0.3);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text(T('formaPago'),ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(10);const pl=doc.splitTextToSize(pago,W-ml-mr);doc.text(pl,ml,y);y+=pl.length*4+3;}
+  if(obs){doc.setFontSize(10);if(y+12+doc.splitTextToSize(obs,W-ml-mr).length*4>H-22){nuevaPaginaCont(false);y+=4;}stroke(borderC);doc.line(ml,y,W-mr,y);y+=5;col(muted);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('OBSERVACIONES',ml,y);y+=4;col(black);doc.setFont('helvetica','normal');doc.setFontSize(10);const ol=doc.splitTextToSize(obs,W-ml-mr);doc.text(ol,ml,y);}
 
   const legalTexto=document.getElementById('texto_legal').value||LEGAL_DEFAULT;
   const footerY=H-18;stroke(borderC);doc.setLineWidth(0.2);doc.line(ml,footerY,W-mr,footerY);
@@ -3545,10 +3651,11 @@ async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted) {
   y = 20;
 
   const usableW = W - ml - mr;
-  const cols = 2;
+  // Una sola foto: a todo el ancho. Varias: dos por fila.
+  const cols = imagenes.length === 1 ? 1 : 2;
   const gap = 6;
-  const imgW = (usableW - gap) / cols;
-  const imgH = imgW * 0.72; // ratio 4:3 aprox, ligeramente más horizontal
+  const imgW = (usableW - gap * (cols - 1)) / cols;
+  const imgH = cols === 1 ? imgW * 0.62 : imgW * 0.72;
   const captionH = 6;
 
   for (let i = 0; i < imagenes.length; i++) {
@@ -3599,12 +3706,14 @@ async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted) {
 
     // Pie de foto
     if (imagenes[i].caption) {
-      doc.setTextColor(...muted); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-      doc.text(imagenes[i].caption, x + imgW / 2, y + imgH + 4, { align: 'center', maxWidth: imgW });
+      doc.setTextColor(55, 65, 81); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+      doc.text(saneaParaPDF(imagenes[i].caption), x + imgW / 2, y + imgH + 4.5, { align: 'center', maxWidth: imgW });
     }
-    // Número
-    doc.setTextColor(...[168, 191, 208]); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
-    doc.text(String(i + 1), x + 2, y + imgH - 2);
+    // Número de foto sobre una etiqueta blanca (visible aunque la foto llene el recuadro)
+    fill([255, 255, 255]); stroke(border); doc.setLineWidth(0.2);
+    doc.rect(x + 1.5, y + imgH - 6.5, 6, 5, 'FD');
+    doc.setTextColor(55, 65, 81); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
+    doc.text(String(i + 1), x + 4.5, y + imgH - 2.9, { align: 'center' });
   }
 }
 
@@ -4409,7 +4518,7 @@ function renderClientesList() {
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn-hist-action" style="background:var(--bg);border:1.5px solid var(--border-strong);color:var(--text-muted)" onclick="abrirFichaCliente(${c.id})">✏️ Editar ficha</button>
         <button class="btn-hist-action btn-hist-load" onclick="nuevoDocParaCliente(${c.id})">+ Nuevo documento</button>
-        ${tieneUltimo ? `<button class="btn-hist-action" style="background:#EEF2FF;color:#6366F1" onclick="cargarUltimoDocCliente(${c.id})">Duplicar último (${docsCliente.length})</button>` : ''}
+        ${tieneUltimo ? `<button class="btn-hist-action" style="background:#EEF2FF;color:#4F46E5" onclick="cargarUltimoDocCliente(${c.id})">Duplicar último (${docsCliente.length})</button>` : ''}
       </div>
     </div>`;
   }).join('') + avisoLimite;
@@ -4681,29 +4790,14 @@ document.addEventListener('visibilitychange', () => {
 
 
 
-// ── TOGGLE PREVIEW ────────────────────────────────────────────────────────────
-let previewVisible = true;
-function togglePreview() {
-  previewVisible = !previewVisible;
-  document.querySelector('.app-body').classList.toggle('preview-hidden', !previewVisible);
-  const btn = document.getElementById('btnTogglePreview');
-  btn.style.background = previewVisible ? '' : 'var(--green)';
-  btn.style.color = previewVisible ? '' : 'white';
-  if (previewVisible) setTimeout(ajustarEscalaPreview, 50);
-  try { localStorage.setItem('mc_preview_visible', previewVisible ? '1':'0'); } catch(e){}
-}
 document.addEventListener('DOMContentLoaded', () => {
   // Por defecto la preview arranca OCULTA, salvo que el usuario la dejara visible
   try {
     const pref = localStorage.getItem('mc_preview_visible');
     if (pref !== '1') {
-      previewVisible = false;
       document.querySelector('.app-body').classList.add('preview-hidden');
-      const btn = document.getElementById('btnTogglePreview');
-      if(btn){ btn.style.background='var(--green)'; btn.style.color='white'; }
     }
   } catch(e){
-    previewVisible = false;
     document.querySelector('.app-body').classList.add('preview-hidden');
   }
 });
@@ -4739,7 +4833,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── MODO OSCURO ───────────────────────────────────────────────────────────────
 function toggleDarkMode() {
   const dark = document.body.classList.toggle('dark');
-  document.getElementById('btnDark').textContent = dark ? '☀️' : '🌙';
+  document.getElementById('btnDark').textContent = dark ? '☀️ Modo claro' : '🌙 Modo oscuro';
   try { localStorage.setItem('mc_dark', dark ? '1':'0'); } catch(e){}
   if (typeof ajustarEscalaPreview==='function') setTimeout(ajustarEscalaPreview, 50);
 }
@@ -5308,7 +5402,7 @@ const TRADUCCIONES = {
     codigo:'CÓDIGO', descripcion:'DESCRIPCIÓN', cantidad:'CANT.', precio:'PRECIO', iva:'IVA', importe:'IMPORTE',
     subtotal:'Subtotal', descuento:'Descuento', baseImponible:'Base imponible',
     total:'TOTAL', aCuenta:'A cuenta', pendiente:'PENDIENTE',
-    formaPago:'FORMA DE PAGO', observaciones:'OBSERVACIONES', subtotalBloque:'Subtotal',
+    formaPago:'FORMA DE PAGO', observaciones:'OBSERVACIONES', subtotalBloque:'Subtotal', conIva:'Con IVA', nifCif:'NIF / CIF', expediente:'EXP.', subtotalExp:'Subtotal exp.',
     paginaXdeY:(x,y)=>`Página ${x} de ${y}`
   },
   en: {
@@ -5319,7 +5413,7 @@ const TRADUCCIONES = {
     codigo:'CODE', descripcion:'DESCRIPTION', cantidad:'QTY', precio:'PRICE', iva:'VAT', importe:'AMOUNT',
     subtotal:'Subtotal', descuento:'Discount', baseImponible:'Net amount',
     total:'TOTAL', aCuenta:'Paid', pendiente:'BALANCE DUE',
-    formaPago:'PAYMENT TERMS', observaciones:'NOTES', subtotalBloque:'Subtotal',
+    formaPago:'PAYMENT TERMS', observaciones:'NOTES', subtotalBloque:'Subtotal', conIva:'Incl. VAT', nifCif:'TAX ID', expediente:'CLAIM', subtotalExp:'Claim subtotal',
     paginaXdeY:(x,y)=>`Page ${x} of ${y}`
   }
 };
@@ -5961,11 +6055,55 @@ function cerrarModalImportExcel() {
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
-function fmt(n){return Number(n).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function fmt(n){
+  const v = Number(n) || 0, neg = v < 0;
+  const [ent, dec] = Math.abs(v).toFixed(2).split('.');
+  return (neg ? '-' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec + ' €';
+}
 function hexToRgb(hex){ try{ const n=parseInt(hex.replace('#',''),16); return [(n>>16)&255,(n>>8)&255,n&255]; }catch(e){ return [28,43,58]; } }
 function fmtNum(n){const v=parseFloat(n);return Number.isInteger(v)?String(v):v.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function formatFecha(iso){const[y,m,d]=iso.split('-');return `${d}/${m}/${y}`;}
 function esc(s){return(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── MENÚ "☰ MÁS" DE LA CABECERA ─────────────────────────────────────────────
+function toggleMenuHdr(e) {
+  if (e) e.stopPropagation();
+  const abierto = document.body.classList.toggle('menu-hdr-abierto');
+  const b = document.getElementById('btnMenuHdr'); if (b) b.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+}
+function cerrarMenuHdr() {
+  document.body.classList.remove('menu-hdr-abierto');
+  const b = document.getElementById('btnMenuHdr'); if (b) b.setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('click', (e) => {
+  if (!document.body.classList.contains('menu-hdr-abierto')) return;
+  const menu = document.getElementById('menuHdr');
+  if (menu && menu.contains(e.target) && e.target.closest('button')) { setTimeout(cerrarMenuHdr, 0); return; } // elegido: cerrar
+  if (menu && !menu.contains(e.target)) cerrarMenuHdr();                                                      // clic fuera: cerrar
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarMenuHdr(); });
+
+// Vincula cada etiqueta con su campo (accesibilidad y clic en el título → campo)
+function vincularEtiquetas() {
+  document.querySelectorAll('label:not([for])').forEach(lb => {
+    const campo = lb.parentElement && lb.parentElement.querySelector('input:not([type=hidden]), select, textarea');
+    if (campo && campo.id && !lb.contains(campo)) lb.htmlFor = campo.id;
+  });
+  document.querySelectorAll('select, input, textarea').forEach(el => {
+    if (el.labels && el.labels.length) return;
+    if (el.getAttribute('aria-label')) return;
+    const t = el.title || el.placeholder || (el.id ? el.id.replace(/_/g, ' ') : '');
+    if (t) el.setAttribute('aria-label', t);
+  });
+}
+// Ejemplos de los campos con el año en curso
+function actualizarEjemplosAnyo() {
+  const a = new Date().getFullYear();
+  const num = document.getElementById('numero'); if (num) num.placeholder = `P-${a}-001`;
+  const ref = document.getElementById('referencia'); if (ref) ref.placeholder = `Ej: Cocina salón — Ref. ${a}-A`;
+}
+document.addEventListener('DOMContentLoaded', () => { try { vincularEtiquetas(); actualizarEjemplosAnyo(); } catch(e){} });
+setTimeout(() => { try { vincularEtiquetas(); actualizarEjemplosAnyo(); } catch(e){} }, 300);
 </script>
 </body>
 </html>
