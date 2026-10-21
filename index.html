@@ -616,7 +616,7 @@
 <div id="loginOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:var(--navy);align-items:center;justify-content:center;padding:20px">
   <div style="background:var(--surface);border-radius:16px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
     <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:15px;font-weight:700;color:var(--navy);letter-spacing:0.08em;text-transform:uppercase">Muebles Carrascosa</div>
+      <div style="font-size:15px;font-weight:700;color:var(--navy);letter-spacing:0.08em;text-transform:uppercase" id="loginNombreEmpresa">Documentos</div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:6px">Facturación · Acceso a la nube</div>
     </div>
     <div class="field-group" style="margin-bottom:14px">
@@ -646,7 +646,7 @@
       <rect x="10" y="36" width="30" height="3" rx="1.5" fill="#A8BFD0" opacity=".6"/>
       <rect x="10" y="44" width="44" height="6" rx="2" fill="#2E7D6B" opacity=".85"/>
     </svg>
-    <div class="pin-logo-text">Muebles Carrascosa</div>
+    <div class="pin-logo-text" id="pinNombreEmpresa">Documentos</div>
     <div class="pin-logo-sub">Sistema de documentos</div>
   </div>
   <div class="pin-box">
@@ -685,7 +685,7 @@
       <rect x="10" y="36" width="30" height="3" rx="1.5" fill="#A8BFD0" opacity=".6"/>
       <rect x="10" y="44" width="44" height="6" rx="2" fill="#2E7D6B" opacity=".85"/>
     </svg>
-    <div class="logo-text"><span id="headerNombreEmpresa">Muebles <span>Carrascosa</span></span><span id="headerVersion" style="font-size:10px;font-weight:600;color:#7E93A8;margin-left:7px;letter-spacing:0.02em"></span></div>
+    <div class="logo-text"><span id="headerNombreEmpresa"></span><span id="headerVersion" style="font-size:10px;font-weight:600;color:#7E93A8;margin-left:7px;letter-spacing:0.02em"></span></div>
   </div>
   <div class="header-actions">
     <button class="btn-header btn-new solo-escritorio" onclick="nuevoDocumento()">+ Nuevo</button>
@@ -752,11 +752,11 @@
       <div class="fields-grid">
         <div class="field-group full">
           <label>Nombre de la empresa</label>
-          <input type="text" id="cfg_nombre" placeholder="Muebles Carrascosa, S.L.">
+          <input type="text" id="cfg_nombre" placeholder="Tu empresa, S.L.">
         </div>
         <div class="field-group full mono">
           <label>CIF / NIF</label>
-          <input type="text" id="cfg_cif" placeholder="B23000000">
+          <input type="text" id="cfg_cif" placeholder="B12345678">
         </div>
       </div>
     </div>
@@ -768,19 +768,19 @@
       <div class="fields-grid">
         <div class="field-group full">
           <label>Calle y número</label>
-          <input type="text" id="cfg_calle" placeholder="C/ Fuenclara, 72">
+          <input type="text" id="cfg_calle" placeholder="C/ Ejemplo, 1">
         </div>
         <div class="field-group">
           <label>Código postal</label>
-          <input type="text" id="cfg_cp" placeholder="23330">
+          <input type="text" id="cfg_cp" placeholder="00000">
         </div>
         <div class="field-group">
           <label>Población</label>
-          <input type="text" id="cfg_poblacion" placeholder="Villanueva del Arzobispo">
+          <input type="text" id="cfg_poblacion" placeholder="Población">
         </div>
         <div class="field-group full">
           <label>Provincia</label>
-          <input type="text" id="cfg_provincia" placeholder="Jaén">
+          <input type="text" id="cfg_provincia" placeholder="Provincia">
         </div>
       </div>
     </div>
@@ -800,11 +800,11 @@
         </div>
         <div class="field-group full">
           <label>Email</label>
-          <input type="email" id="cfg_email" placeholder="info@mueblescarrascosa.es">
+          <input type="email" id="cfg_email" placeholder="info@empresa.com">
         </div>
         <div class="field-group full">
           <label>Web</label>
-          <input type="text" id="cfg_web" placeholder="www.mueblescarrascosa.es">
+          <input type="text" id="cfg_web" placeholder="www.empresa.com">
         </div>
       </div>
     </div>
@@ -1331,8 +1331,8 @@
         <div class="doc-empresa">
           <div id="prev_logo_wrap"></div>
           <div>
-            <h1 id="prev_empresa_nombre">Muebles Carrascosa</h1>
-            <p id="prev_empresa_datos">Muebles Carrascosa, S.L.<br>C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén)<br>CIF: B23000000</p>
+            <h1 id="prev_empresa_nombre"></h1>
+            <p id="prev_empresa_datos"></p>
           </div>
         </div>
         <div>
@@ -1397,7 +1397,9 @@
 
 <script>
 const APP_VERSION = 'v5.38';
-const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de MUEBLES CARRASCOSA, S.L., con domicilio en C/ Fuenclara, 72 · 23330 Villanueva del Arzobispo (Jaén). Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a dicha dirección.';
+// Nombre que se muestra cuando la cuenta aún no ha configurado el de su empresa
+const NOMBRE_EMPRESA_GENERICO = 'Tu empresa';
+const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de la empresa emisora de este documento. Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a su domicilio.';
 const STORAGE_KEY  = 'mc_historial_v1';
 const CONFIG_KEY   = 'mc_config_v1';
 
@@ -1502,7 +1504,9 @@ function _supaHeaders() {
   return {
     'apikey': SUPA_KEY,
     'Content-Type': 'application/json',
-    'Authorization': 'Bearer ' + (SUPA_TOKEN || SUPA_KEY)
+    // Solo con el token de la cuenta dueña de los datos locales; si no, la clave pública,
+    // que no tiene acceso: así una pestaña con datos de otra cuenta no puede subir nada
+    'Authorization': 'Bearer ' + (supaSesionActiva() ? SUPA_TOKEN : SUPA_KEY)
   };
 }
 
@@ -1548,7 +1552,31 @@ async function supaRenovarSesion() {
   return false;
 }
 
-function supaSesionActiva() { return !!SUPA_TOKEN; }
+// Hay sesión y es de la cuenta dueña de los datos de este dispositivo
+function supaSesionActiva() { return !!SUPA_TOKEN && _cuentaCoincide(); }
+
+// Usuario de la nube al que pertenecen los datos guardados en este dispositivo,
+// y el que había al abrir esta pestaña.
+// Si entra otra cuenta, sus datos no deben mezclarse con los del usuario anterior.
+const UID_KEY = 'mc_supa_uid';
+let _uidPestana = localStorage.getItem(UID_KEY);
+// true cuando en esta pestaña ya no mandan los datos cargados (cambio de cuenta): no se escribe nada más
+let _cuentaAjena = false;
+function _uidDeToken(t) {
+  try { return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub || null; } catch(e) { return null; }
+}
+function _hayDatosLocales() { return CLAVES_SYNC.some(k => localStorage.getItem(k) !== null); }
+function _cuentaCoincide() {
+  const uid = SUPA_TOKEN ? _uidDeToken(SUPA_TOKEN) : null;
+  return !uid || localStorage.getItem(UID_KEY) === uid;
+}
+// Si en otra pestaña se entra con otra cuenta, esta deja de escribir y se recarga
+// (si no, volvería a guardar en el dispositivo los datos de la cuenta anterior)
+window.addEventListener('storage', e => {
+  if (e.key !== UID_KEY || !e.oldValue || e.newValue === e.oldValue || _cuentaAjena) return;
+  _cuentaAjena = true;
+  location.reload();
+});
 
 function supaLogout() {
   SUPA_TOKEN = null; SUPA_REFRESH = null; SUPA_OK = false;
@@ -1581,7 +1609,7 @@ async function supaLeerClave(clave) {
     const resp = await fetch(SUPA_URL + '/rest/v1/' + SUPA_TABLA + '?clave=eq.' + encodeURIComponent(clave) + '&select=datos', {
       headers: _supaHeaders()
     });
-    if (resp.status === 401) { // token caducado → renovar y reintentar una vez
+    if (resp.status === 401 && supaSesionActiva()) { // token caducado → renovar y reintentar una vez
       if (await supaRenovarSesion()) return supaLeerClave(clave);
     }
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -1600,7 +1628,7 @@ async function supaGuardarClave(clave, valor) {
       headers: Object.assign(_supaHeaders(), {'Prefer': 'return=minimal'}),
       body: JSON.stringify({ datos: datos, actualizado: new Date().toISOString() })
     });
-    if (resp.status === 401) { if (await supaRenovarSesion()) return supaGuardarClave(clave, valor); }
+    if (resp.status === 401 && supaSesionActiva()) { if (await supaRenovarSesion()) return supaGuardarClave(clave, valor); }
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     // ¿existía la fila? si no, crearla
     const check = await fetch(SUPA_URL + '/rest/v1/' + SUPA_TABLA + '?clave=eq.' + encodeURIComponent(clave) + '&select=clave', {
@@ -1698,6 +1726,7 @@ async function supaSync(clave) {
   window._setItemCrudo = _escribir;
   let _syncPendiente = {}; // agrupar cambios rápidos (debounce)
   localStorage.setItem = function(clave, valor) {
+    if (_cuentaAjena || (_uidPestana && localStorage.getItem(UID_KEY) !== _uidPestana)) return;
     let tumbas = null;
     if (CLAVES_LISTA.includes(clave)) {
       const arr = _leerJSON(valor, null);
@@ -1722,6 +1751,28 @@ async function hacerLogin() {
   btn.textContent = 'Entrando...'; btn.disabled = true; errEl.textContent = '';
   const res = await supaLogin(email, pass);
   if (res.ok) {
+    const uid = _uidDeToken(SUPA_TOKEN), uidPrevio = localStorage.getItem(UID_KEY);
+    if (uid && uidPrevio && uid !== uidPrevio && _hayDatosLocales()) {
+      if (!confirm('Este dispositivo tiene datos de OTRA cuenta.\n\n' +
+                   'Aceptar: se descarga una copia de esos datos y se vacían de este dispositivo antes de entrar.\n' +
+                   'Cancelar: no se entra y los datos se quedan como están.')) {
+        supaLogout();
+        btn.textContent = 'Entrar'; btn.disabled = false;
+        return;
+      }
+      // Mientras tanto la cuenta apuntada sigue siendo la anterior, así que no se sincroniza
+      // nada; si algo corta aquí, al volver a abrir se pregunta otra vez.
+      exportarBackup();
+      _cuentaAjena = true;   // esta pestaña ya no guarda nada de la cuenta anterior
+      // con margen para que empiece la descarga: vaciar, apuntar la cuenta nueva y arrancar limpio
+      setTimeout(() => {
+        [...CLAVES_SYNC, DRAFT_KEY].forEach(k => { try { localStorage.removeItem(k); } catch(e){} });
+        _setItemCrudo(UID_KEY, uid);
+        location.reload();
+      }, 1500);
+      return;
+    }
+    if (uid) { localStorage.setItem(UID_KEY, uid); _uidPestana = uid; }
     document.getElementById('loginOverlay').style.display = 'none';
     await supaCargarTodo(); // traer datos de la nube
   } else {
@@ -1739,6 +1790,10 @@ function usarSoloLocal() {
 // Al arrancar: decidir si mostrar login o entrar directo
 function iniciarSupabase() {
   const modoLocal = localStorage.getItem('mc_modo_local') === '1';
+  // Sesión guardada sin cuenta apuntada (dispositivos anteriores a este aviso): es la dueña
+  if (SUPA_TOKEN && !localStorage.getItem(UID_KEY)) { const u = _uidDeToken(SUPA_TOKEN); if (u) { localStorage.setItem(UID_KEY, u); _uidPestana = u; } }
+  // Con la sesión de otra cuenta (cambio cortado a medias) supaSesionActiva() es false
+  // y se pide login, que es donde se avisa y se vacían los datos de la cuenta anterior
   if (supaSesionActiva()) {
     // Ya hay sesión guardada: sincronizar en segundo plano
     supaCargarTodo();
@@ -1857,9 +1912,14 @@ function cargarConfig() {
     mostrarLogoPreview(c.logo);
   }
   actualizarPreviewEmpresa();
-  // La cabecera muestra el nombre de empresa configurado (o "Muebles Carrascosa" por defecto)
+  // La cabecera muestra el nombre de empresa configurado (o uno genérico si no hay)
   const headerNom = document.getElementById('headerNombreEmpresa');
-  if (headerNom) headerNom.textContent = (c.nombre || '').trim() || 'Muebles Carrascosa';
+  if (headerNom) headerNom.textContent = (c.nombre || '').trim() || NOMBRE_EMPRESA_GENERICO;
+  // Pantallas de acceso y de PIN: el nombre configurado en este dispositivo, o el de la app
+  ['loginNombreEmpresa', 'pinNombreEmpresa'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (c.nombre || '').trim() || 'Documentos';
+  });
 }
 
 function guardarConfig() {
@@ -1878,7 +1938,7 @@ function guardarConfig() {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(c));
   actualizarPreviewEmpresa();
   const headerNom2 = document.getElementById('headerNombreEmpresa');
-  if (headerNom2) headerNom2.textContent = (c.nombre || '').trim() || 'Muebles Carrascosa';
+  if (headerNom2) headerNom2.textContent = (c.nombre || '').trim() || NOMBRE_EMPRESA_GENERICO;
   sugerirNumero();
   actualizarPreview();
   cerrarDrawers();
@@ -1887,13 +1947,13 @@ function guardarConfig() {
 
 function actualizarPreviewEmpresa() {
   const c = getConfig();
-  const nombre = c.nombre || 'Muebles Carrascosa';
+  const nombre = c.nombre || NOMBRE_EMPRESA_GENERICO;
   document.getElementById('prev_empresa_nombre').textContent = nombre;
 
   // Construir línea de datos
   let lineas_datos = [];
   if (c.nombre) lineas_datos.push(c.nombre + (c.cif ? ' · CIF: ' + c.cif : ''));
-  else lineas_datos.push('Muebles Carrascosa, S.L.' + (c.cif ? ' · CIF: ' + c.cif : ''));
+  else lineas_datos.push(NOMBRE_EMPRESA_GENERICO + (c.cif ? ' · CIF: ' + c.cif : ''));
   let dir = [c.calle, [c.cp, c.poblacion].filter(Boolean).join(' '), c.provincia].filter(Boolean).join(' · ');
   if (dir) lineas_datos.push(dir);
   let contacto = [c.telefono, c.movil, c.email, c.web].filter(Boolean).join(' · ');
@@ -2715,7 +2775,8 @@ function cargarEstado(estado){
   }
   document.getElementById('idioma_pdf').value=estado.idioma_pdf||'es';
   if(!estado.iva_pct) document.getElementById('iva_pct').value='21';
-  document.getElementById('texto_legal').value=estado.texto_legal||LEGAL_DEFAULT;
+  // Documentos sin texto legal propio: el de la configuración (con el que se hicieron), y si no hay, el genérico
+  document.getElementById('texto_legal').value=estado.texto_legal||getConfig().texto_legal||LEGAL_DEFAULT;
   document.getElementById('validez_dias').value=estado.validez_dias||'40';
   document.getElementById('notas_internas').value=estado.notas_internas||'';
   document.getElementById('anticipo').value=estado.anticipo||'';
@@ -3167,7 +3228,7 @@ async function _generarPDFreal(accionPDF){
   const col=a=>doc.setTextColor(...a),fill=a=>doc.setFillColor(...a),stroke=a=>doc.setDrawColor(...a);
 
   const cfg=getConfig();
-  const empNombre=cfg.nombre||'Muebles Carrascosa, S.L.';
+  const empNombre=cfg.nombre||NOMBRE_EMPRESA_GENERICO;
   const empCIF=cfg.cif||'';
   const empDir=[cfg.calle,[cfg.cp,cfg.poblacion].filter(Boolean).join(' '),cfg.provincia].filter(Boolean).join(' · ');
   const empContacto=[cfg.telefono,cfg.movil,cfg.email,cfg.web].filter(Boolean).join(' · ');
@@ -3645,7 +3706,7 @@ async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted) {
   fill(navy); doc.rect(0, 0, W, 12, 'F');
   col([255, 255, 255]); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
   const cfg = getConfig();
-  doc.text((cfg.nombre || 'Muebles Carrascosa').toUpperCase(), ml, 8);
+  doc.text((cfg.nombre || NOMBRE_EMPRESA_GENERICO).toUpperCase(), ml, 8);
   col([168, 191, 208]); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
   doc.text('IMÁGENES ADJUNTAS', W - mr, 8, { align: 'right' });
   y = 20;
@@ -3670,7 +3731,7 @@ async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted) {
       doc.addPage();
       fill(navy); doc.rect(0, 0, W, 12, 'F');
       col([255, 255, 255]); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-      doc.text((cfg.nombre || 'Muebles Carrascosa').toUpperCase(), ml, 8);
+      doc.text((cfg.nombre || NOMBRE_EMPRESA_GENERICO).toUpperCase(), ml, 8);
       col([168, 191, 208]); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
       doc.text('IMÁGENES ADJUNTAS', W - mr, 8, { align: 'right' });
       y = 20;
@@ -4121,7 +4182,7 @@ function convertirAFactura() {
 function exportarExcel() {
   const cfg = getConfig();
   const t = calcTotales();
-  const empresa = cfg.nombre || 'Muebles Carrascosa, S.L.';
+  const empresa = cfg.nombre || NOMBRE_EMPRESA_GENERICO;
   const cliente = document.getElementById('cliente_nombre').value || '';
   const numero = document.getElementById('numero').value || '';
   const fecha = document.getElementById('fecha').value || '';
@@ -4693,6 +4754,7 @@ document.addEventListener('input', (e) => {
 
 // Aviso antes de cerrar / recargar si hay cambios sin guardar
 window.addEventListener('beforeunload', (e) => {
+  if (_cuentaAjena) return; // cambiando de cuenta: no guardar nada de la anterior
   if (hayCambiosSinGuardar && typeof autoGuardarDocumento === 'function' && autoGuardarDocumento()) return;
   if (hayCambiosSinGuardar) {
     guardarBorrador(); // guardar por si acaso
@@ -4890,7 +4952,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function compartirWhatsApp() {
   const cfg = getConfig();
   const t = calcTotales();
-  const empresa = cfg.nombre || 'Muebles Carrascosa';
+  const empresa = cfg.nombre || NOMBRE_EMPRESA_GENERICO;
   const tipo = tipoActual.charAt(0) + tipoActual.slice(1).toLowerCase();
   const numero = document.getElementById('numero').value || '';
   const cliente = document.getElementById('cliente_nombre').value || '';
@@ -4930,7 +4992,7 @@ function compartirWhatsApp() {
 function compartirEmail() {
   const cfg = getConfig();
   const t = calcTotales();
-  const empresa = cfg.nombre || 'Muebles Carrascosa';
+  const empresa = cfg.nombre || NOMBRE_EMPRESA_GENERICO;
   const tipo = tipoActual.charAt(0) + tipoActual.slice(1).toLowerCase();
   const numero = document.getElementById('numero').value || '';
   const cliente = document.getElementById('cliente_nombre').value || '';
@@ -5216,7 +5278,7 @@ function copiarResumen() {
   const cliente = document.getElementById('cliente_nombre').value || '';
   const ref = document.getElementById('referencia').value || '';
 
-  let txt = `${cfg.nombre || 'Muebles Carrascosa'}\n`;
+  let txt = `${cfg.nombre || NOMBRE_EMPRESA_GENERICO}\n`;
   txt += `${tipo}${numero ? ' Nº ' + numero : ''}\n`;
   if (cliente) txt += `Cliente: ${cliente}\n`;
   if (ref) txt += `Ref: ${ref}\n`;
@@ -5455,7 +5517,7 @@ function renderCuentasList() {
       <div class="fields-grid" style="gap:8px">
         <div class="field-group"><label>Nombre / Banco</label><input type="text" value="${esc(cta.nombre||'')}" placeholder="Ej: Cuenta principal — Caja Rural" oninput="updateCuenta(${i},'nombre',this.value)"></div>
         <div class="field-group mono"><label>IBAN</label><input type="text" value="${esc(cta.iban||'')}" placeholder="ES00 0000 0000 0000 0000 0000" oninput="updateCuenta(${i},'iban',this.value)"></div>
-        <div class="field-group"><label>Titular (opcional)</label><input type="text" value="${esc(cta.titular||'')}" placeholder="Muebles Carrascosa S.L." oninput="updateCuenta(${i},'titular',this.value)"></div>
+        <div class="field-group"><label>Titular (opcional)</label><input type="text" value="${esc(cta.titular||'')}" placeholder="Tu empresa, S.L." oninput="updateCuenta(${i},'titular',this.value)"></div>
       </div>
       <button onclick="eliminarCuenta(${i})" style="margin-top:6px;font-size:11px;font-weight:600;padding:5px 12px;background:#FEE2E2;color:#DC2626;border:none;border-radius:4px;cursor:pointer;font-family:var(--sans)">× Eliminar cuenta</button>
     </div>`).join('');
