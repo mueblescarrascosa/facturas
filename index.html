@@ -6167,5 +6167,16 @@ function actualizarEjemplosAnyo() {
 document.addEventListener('DOMContentLoaded', () => { try { vincularEtiquetas(); actualizarEjemplosAnyo(); } catch(e){} });
 setTimeout(() => { try { vincularEtiquetas(); actualizarEjemplosAnyo(); } catch(e){} }, 300);
 </script>
+<!-- Botón "Instalar app": sale solo cuando Chrome ofrece instalarla (en algunos Android el menú ⋮ no lo consigue y esto sí) -->
+<style>#btn-instalar{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:9999;border:0;border-radius:999px;padding:11px 16px;font:600 14px/1 system-ui,-apple-system,sans-serif;background:#1C2B3A;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer}#btn-instalar[hidden]{display:none}</style>
+<button id="btn-instalar" type="button" hidden>📲 Instalar app</button>
+<script>
+(function(){
+  var aviso=null, b=document.getElementById("btn-instalar");
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); aviso=e; b.hidden=false; });
+  b.addEventListener("click", function(){ if(!aviso) return; aviso.prompt(); aviso.userChoice.then(function(){ aviso=null; b.hidden=true; }); });
+  window.addEventListener("appinstalled", function(){ aviso=null; b.hidden=true; });
+})();
+</script>
 </body>
 </html>
