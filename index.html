@@ -84,8 +84,8 @@
   .btn-new:hover { background:#3A5470; color:white; }
   .btn-pdf { background:var(--green); color:white; }
   .btn-pdf:hover { background:#256558; }
-  .btn-print { background:transparent; color:#A8BFD0; border:1px solid #3A5470; }
-  .btn-print:hover { background:#3A5470; color:white; }
+  .btn-print { background:white; color:#1C2B3A; }
+  .btn-print:hover { background:#E5EAF0; }
   .btn-hist { background:transparent; color:#A8BFD0; border:1px solid #3A5470; position:relative; }
   .btn-hist:hover { background:#3A5470; color:white; }
   .btn-config { background:transparent; color:#A8BFD0; border:1px solid #3A5470; }
@@ -566,6 +566,13 @@
     .btn-add-linea, .btn-add-bloque { font-size:15px !important; padding:13px !important; }
   }
 
+  /* Móvil: los cinco botones de la cabecera caben en una sola fila */
+  @media (max-width:560px) {
+    .txt-imprimir, .txt-mas { display:none; }
+    .header-actions { gap:5px; }
+    .header-actions > .btn-header { padding:8px 8px; }
+  }
+
   /* Móviles pequeños */
   @media (max-width:420px) {
     .linea-row .m-field-row { grid-template-columns:1fr; }
@@ -710,13 +717,13 @@
       <span class="hist-badge" id="histBadge" style="display:none">0</span>
     </button>
     <span class="header-sep"></span>
+    <button class="btn-header btn-print" onclick="generarPDF('imprimir')" title="Imprimir" aria-label="Imprimir">🖨<span class="txt-imprimir"> Imprimir</span></button>
     <button class="btn-header btn-pdf" onclick="generarPDF()">⬇ PDF</button>
     <button class="btn-header btn-save" onclick="compartirWhatsApp()" style="background:#1A7F45;color:white;border-color:#1A7F45" title="Compartir por WhatsApp">💬 WhatsApp</button>
-    <button class="btn-header btn-config hdr-menu-btn" id="btnMenuHdr" onclick="toggleMenuHdr(event)" aria-haspopup="true" aria-expanded="false" title="Más opciones">☰ Más</button>
+    <button class="btn-header btn-config hdr-menu-btn" id="btnMenuHdr" onclick="toggleMenuHdr(event)" aria-haspopup="true" aria-expanded="false" title="Más opciones" aria-label="Más opciones">☰<span class="txt-mas"> Más</span></button>
     <div class="menu-hdr" id="menuHdr">
       <button class="btn-header btn-new solo-movil" onclick="nuevoDocumento()">+ Nuevo</button>
       <button class="btn-header btn-hist solo-movil" onclick="abrirHistorial()">📋 Historial</button>
-      <button class="btn-header btn-print" onclick="generarPDF('imprimir')">🖨 Imprimir</button>
       <button class="btn-header btn-config" onclick="compartirEmail()" title="Enviar por email">✉ Email</button>
       <button class="btn-header btn-config" onclick="copiarResumen()" title="Copiar resumen al portapapeles">📋 Copiar</button>
       <button class="btn-header btn-config" onclick="exportarExcel()">⬇ Excel</button>
@@ -1411,7 +1418,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.40';
+const APP_VERSION = 'v5.41';
 // Nombre que se muestra cuando la cuenta aún no ha configurado el de su empresa
 const NOMBRE_EMPRESA_GENERICO = 'Tu empresa';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de la empresa emisora de este documento. Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a su domicilio.';
@@ -3241,6 +3248,10 @@ async function _generarPDFreal(accionPDF){
   let y=15;
   const navy=hexToRgb(getConfig().color || '#1C2B3A'),green=[46,125,107],lightgray=[247,248,250],borderC=[221,226,232],muted=[107,114,128],black=[26,26,26];
   const col=a=>doc.setTextColor(...a),fill=a=>doc.setFillColor(...a),stroke=a=>doc.setDrawColor(...a);
+  // Al imprimir: sin fondos oscuros ni bandas de color, solo texto y líneas finas, para gastar poca tinta.
+  // El PDF descargado y el de WhatsApp conservan el diseño con color.
+  const claro=accionPDF==='imprimir', lineaClara=[120,128,140];
+  const lineaH=(yy,grosor=0.4)=>{stroke(lineaClara);doc.setLineWidth(grosor);doc.line(ml,yy,W-mr,yy);};
 
   const cfg=getConfig();
   const empNombre=cfg.nombre||NOMBRE_EMPRESA_GENERICO;
@@ -3249,7 +3260,7 @@ async function _generarPDFreal(accionPDF){
   const empContacto=[cfg.telefono,cfg.movil,cfg.email,cfg.web].filter(Boolean).join(' · ');
 
   // Cabecera azul
-  fill(navy); doc.rect(0,0,W,30,'F');
+  if(claro) lineaH(30); else { fill(navy); doc.rect(0,0,W,30,'F'); }
 
   // Logo en PDF (respetando su proporción original)
   let logoW=0;
@@ -3270,18 +3281,19 @@ async function _generarPDFreal(accionPDF){
     }catch(e){}
   }
 
-  col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+  col(claro?black:[255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(15);
   doc.text(empNombre.toUpperCase(),ml+logoW,12);
-  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); col([168,191,208]);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); col(claro?[75,85,99]:[168,191,208]);
   if(empDir) doc.text(empDir,ml+logoW,18);
   const line2=[empCIF?'CIF: '+empCIF:null,empContacto].filter(Boolean).join('   ');
   if(line2) doc.text(line2,ml+logoW,23);
 
   // Badge tipo
-  const tipo=tipoTraducido(),badgeX=W-mr-2; fill(green);
+  const tipo=tipoTraducido(),badgeX=W-mr-2;
   const badgeW=doc.getStringUnitWidth(tipo)*8/doc.internal.scaleFactor+10;
-  doc.rect(badgeX-badgeW,7,badgeW,9,'F');
-  col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+  if(claro){ stroke(lineaClara); doc.setLineWidth(0.4); doc.rect(badgeX-badgeW,7,badgeW,9,'S'); col(black); }
+  else { fill(green); doc.rect(badgeX-badgeW,7,badgeW,9,'F'); col([255,255,255]); }
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
   doc.text(tipo,badgeX-badgeW/2,13,{align:'center'});
 
   // ── Datos: tres cajas en una fila — Cliente | NIF | Documento ──
@@ -3302,7 +3314,8 @@ async function _generarPDFreal(accionPDF){
   const cliL=[]; [dir,pob].filter(Boolean).forEach(t=>envolverTexto(doc,t,wCli-8).forEach(x=>cliL.push(x)));
   const boxH=Math.max(26, 15+docL.length*4.2+2, 15+cliL.length*4.6+1);
   fill(lightgray); stroke(borderC); doc.setLineWidth(0.3);
-  doc.rect(ml,cY,wCli,boxH,'FD'); doc.rect(xNif,cY,wNif,boxH,'FD'); doc.rect(xDoc,cY,wDoc,boxH,'FD');
+  const estiloCaja=claro?'S':'FD';
+  doc.rect(ml,cY,wCli,boxH,estiloCaja); doc.rect(xNif,cY,wNif,boxH,estiloCaja); doc.rect(xDoc,cY,wDoc,boxH,estiloCaja);
   // Cliente (o proveedor)
   col(muted); doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.text((tipoActual==='NOTA DE PEDIDO'?'PROVEEDOR':T('cliente')),ml+4,cY+5);
   col(black); doc.setFont('helvetica','bold'); doc.setFontSize(11);
@@ -3329,8 +3342,9 @@ async function _generarPDFreal(accionPDF){
     : mostrarIva ? {cod:ml+2, desc:ml+21, cant:W-mr-58, precio:W-mr-36, iva:W-mr-26, imp:W-mr-2}
     : {cod:ml+2, desc:ml+21, cant:W-mr-48, precio:W-mr-26, iva:0, imp:W-mr-2};
   const pintarCabeceraColumnas = (yy) => {
-    fill(navy); doc.rect(ml,yy,W-ml-mr,7,'F');
-    col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+    if(claro){ lineaH(yy); lineaH(yy+7); col(black); }
+    else { fill(navy); doc.rect(ml,yy,W-ml-mr,7,'F'); col([255,255,255]); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
     doc.text(T('codigo'),cols.cod,yy+4.8); doc.text(T('descripcion'),cols.desc,yy+4.8);
     doc.text(T('cantidad'),cols.cant,yy+4.8,{align:'right'});
     if(!esPedido){ doc.text(T('precio'),cols.precio,yy+4.8,{align:'right'}); if(mostrarIva) doc.text(T('iva'),cols.iva,yy+4.8,{align:'right'}); doc.text(T('importe'),cols.imp,yy+4.8,{align:'right'}); }
@@ -3342,10 +3356,10 @@ async function _generarPDFreal(accionPDF){
     const nombreEmpresa = (cfgPag.nombre || 'Mi Empresa').toUpperCase();
     const numDoc = document.getElementById('numero').value.trim();
     const cliDoc = document.getElementById('cliente_nombre').value.trim();
-    fill(navy); doc.rect(0, 0, W, 10, 'F');
-    col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    if(claro) lineaH(10); else { fill(navy); doc.rect(0, 0, W, 10, 'F'); }
+    col(claro?black:[255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
     doc.text(nombreEmpresa, ml, 6.5);
-    col([168,191,208]); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    col(claro?[75,85,99]:[168,191,208]); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
     doc.text(`${tipoTraducido()} ${numDoc}${cliDoc ? '  ·  ' + cliDoc : ''}  (cont.)`, W - mr, 6.5, {align:'right', maxWidth: W - ml - mr - 45});
     y = 16;
     if (conColumnas) { pintarCabeceraColumnas(y); y += 7; }
@@ -3390,9 +3404,9 @@ async function _generarPDFreal(accionPDF){
     const dirL = dirTxt.trim() ? envolverTexto(doc, dirTxt.trim(), W-ml-mr-6-anchoEtiq-anchoSub) : [];
     const expH = Math.max(7, dirL.length * 3.8 + 3.4);
     if (!cont && y + expH + 9 > H - 24) { nuevaPaginaCont(true); }
-    fill([234,239,245]); doc.rect(ml, y, W-ml-mr, expH, 'F');
-    fill(navy); doc.rect(ml, y, 1.2, expH, 'F');
-    col(navy); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+    if(claro) lineaH(y+expH,0.25);
+    else { fill([234,239,245]); doc.rect(ml, y, W-ml-mr, expH, 'F'); fill(navy); doc.rect(ml, y, 1.2, expH, 'F'); }
+    col(claro?black:navy); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
     if (etiq) doc.text(etiq, ml+3, y+4.7);
     col([55,65,81]); doc.setFont('helvetica','normal');
     dirL.forEach((t,k) => doc.text(t, ml+3+anchoEtiq, y+4.7+k*3.8));
@@ -3414,12 +3428,12 @@ async function _generarPDFreal(accionPDF){
       const lineasTit = envolverTexto(doc, (f.titulo||'').toUpperCase(), W-ml-mr-62);
       const blkH = Math.max(6.2, lineasTit.length * 3.4 + 2.8);
       if (y + blkH + 9 > H - 24) nuevaPaginaCont(true);
-      fill(navy); doc.rect(ml,y,W-ml-mr,blkH,'F');
-      col([255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
+      if(claro) lineaH(y+blkH); else { fill(navy); doc.rect(ml,y,W-ml-mr,blkH,'F'); }
+      col(claro?black:[255,255,255]); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
       lineasTit.forEach((ln, idx) => doc.text(ln, ml+2, y+4.2+idx*3.4, {align:'left'}));
       // Subtotal del bloque a la derecha
       if (f.sub.baseSinIva > 0) {
-        doc.setFont('helvetica','normal'); doc.setFontSize(7); col([255,255,255]);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7); col(claro?black:[255,255,255]);
         doc.text(`${T('subtotalBloque')}: ${fmt(f.sub.baseSinIva)}  ·  ${T('conIva')}: ${fmt(f.sub.conIva)}`, W-mr-2, y+4.2, {align:'right'});
       }
       y += blkH;
@@ -3447,7 +3461,7 @@ async function _generarPDFreal(accionPDF){
       if (expEnCurso) dibujarFranjaExp(expEnCurso, true);
       zebra = 0;
     }
-    if(zebra%2===1){fill([250,251,252]);stroke(borderC);doc.rect(ml,y,W-ml-mr,rowH,'F');}
+    if(!claro&&zebra%2===1){fill([250,251,252]);stroke(borderC);doc.rect(ml,y,W-ml-mr,rowH,'F');}
     stroke(borderC);doc.setLineWidth(0.2);doc.line(ml,y+rowH,W-mr,y+rowH);
     if(f && f.tipo==='linea'){
       const l = f.l;
@@ -3494,7 +3508,8 @@ async function _generarPDFreal(accionPDF){
     if (y + 4 + nTot*totRowH + 14 > H - 22) { nuevaPaginaCont(false); y += 6; }
   }
   const drawTotRow=(label,val,grand=false)=>{
-    if(grand){fill(navy);doc.rect(totLX-4,y-3.5,(W-mr)-(totLX-4),totRowH+1,'F');col([255,255,255]);}
+    if(grand&&claro){stroke(lineaClara);doc.setLineWidth(0.4);doc.line(totLX-4,y-3.5,W-mr,y-3.5);doc.line(totLX-4,y+totRowH-2.5,W-mr,y+totRowH-2.5);col(black);}
+    else if(grand){fill(navy);doc.rect(totLX-4,y-3.5,(W-mr)-(totLX-4),totRowH+1,'F');col([255,255,255]);}
     else col(muted);
     doc.setFont('helvetica',grand?'bold':'normal');doc.setFontSize(grand?11:10);
     doc.text(label,totLX,y+1.5);
@@ -3544,8 +3559,9 @@ async function _generarPDFreal(accionPDF){
   doc.text(doc.splitTextToSize(legalTexto,W-ml-mr),ml,footerY+4);
 
   const nombre=document.getElementById('cliente_nombre').value||'cliente',num=document.getElementById('numero').value||'sin-numero';
+  const nombreArchivo=`${tipoActual.toLowerCase().replace(/ /g,'_')}_${num}_${nombre}.pdf`;
   // Añadir páginas de imágenes si las hay
-  await pdfAnadirImagenes(doc, W, H, ml, mr, navy, borderC, muted);
+  await pdfAnadirImagenes(doc, W, H, ml, mr, navy, borderC, muted, claro);
 
   // Numeración de página "Página X de Y" (solo si hay más de una página)
   const totalPaginas = doc.internal.getNumberOfPages();
@@ -3560,24 +3576,93 @@ async function _generarPDFreal(accionPDF){
   }
 
   if (accionPDF === 'imprimir') {
-    // Abrir el PDF en una pestaña y lanzar el diálogo de impresión del navegador
     try {
-      const blob = doc.output('blob');
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      if (win) {
-        win.addEventListener('load', () => { try { win.focus(); win.print(); } catch(e){} });
-        // Fallback: algunos navegadores no disparan 'load' en el visor de PDF
-        setTimeout(() => { try { win.focus(); win.print(); } catch(e){} }, 1200);
-      } else {
-        mostrarToast('Permite las ventanas emergentes para imprimir, o usa el botón PDF');
-      }
+      await imprimirPDF(doc);
     } catch(e) {
-      mostrarToast('No se pudo abrir la impresión; descarga el PDF e imprímelo');
+      console.error('Impresión:', e);
+      doc.save(nombreArchivo);
+      mostrarToast('No se pudo preparar la impresión; se ha descargado el PDF para imprimirlo');
     }
     return;
   }
-  doc.save(`${tipoActual.toLowerCase().replace(/ /g,'_')}_${num}_${nombre}.pdf`);
+  doc.save(nombreArchivo);
+}
+
+// Imprimir sin depender del visor de PDF del navegador ni de Adobe: cada página del PDF
+// se convierte en imagen y se imprime desde un marco oculto de la propia app.
+const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+const PDFJS_SRI = 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e';
+const PDFJS_WORKER_SRI = 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2';
+let pdfjsPromesa = null;
+function cargarPdfJs() {
+  if (!pdfjsPromesa) {
+    pdfjsPromesa = (async () => {
+      await new Promise((ok, mal) => {
+        const s = document.createElement('script');
+        s.src = PDFJS_BASE + 'pdf.min.js'; s.integrity = PDFJS_SRI; s.crossOrigin = 'anonymous';
+        s.onload = ok; s.onerror = () => mal(new Error('No se pudo cargar pdf.js'));
+        document.head.appendChild(s);
+      });
+      const r = await fetch(PDFJS_BASE + 'pdf.worker.min.js', { integrity: PDFJS_WORKER_SRI, mode: 'cors' });
+      if (!r.ok) throw new Error('No se pudo cargar el worker de pdf.js');
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(await r.blob());
+      return window.pdfjsLib;
+    })().catch(e => { pdfjsPromesa = null; throw e; });
+  }
+  return pdfjsPromesa;
+}
+
+let imprimiendo = false, urlsImpresion = [];
+async function imprimirPDF(doc) {
+  if (imprimiendo) return;
+  imprimiendo = true;
+  mostrarToast('Preparando la impresión…', true);
+  try {
+    const pdfjs = await cargarPdfJs();
+    const pdf = await pdfjs.getDocument({ data: doc.output('arraybuffer') }).promise;
+    const urls = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const pag = await pdf.getPage(n);
+      const vista = pag.getViewport({ scale: 4 }); // unos 288 ppp
+      const lienzo = document.createElement('canvas');
+      lienzo.width = Math.floor(vista.width); lienzo.height = Math.floor(vista.height);
+      await pag.render({ canvasContext: lienzo.getContext('2d', { alpha: false }), viewport: vista }).promise;
+      const png = await new Promise(ok => lienzo.toBlob(ok, 'image/png'));
+      if (!png) throw new Error('No se pudo crear la imagen de la página ' + n);
+      urls.push(URL.createObjectURL(png));
+      pag.cleanup();
+      lienzo.width = lienzo.height = 0;
+    }
+    await pdf.destroy();
+
+    // El marco de la impresión anterior se retira aquí: quitarlo antes podría cortar el diálogo
+    document.getElementById('marcoImpresion')?.remove();
+    urlsImpresion.forEach(u => URL.revokeObjectURL(u));
+    urlsImpresion = urls;
+
+    const marco = document.createElement('iframe');
+    marco.id = 'marcoImpresion';
+    marco.setAttribute('aria-hidden', 'true');
+    marco.style.cssText = 'position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0';
+    document.body.appendChild(marco);
+    const d = marco.contentDocument;
+    d.open();
+    d.write('<!doctype html><html><head><title>' + escapeHtmlImpresion(document.title) + '</title><style>'
+      + '@page{size:A4;margin:0}html,body{margin:0;padding:0;background:#fff}'
+      + '.p{width:210mm;height:296.5mm;overflow:hidden;break-after:page}.p:last-child{break-after:auto}'
+      + 'img{display:block;width:210mm;height:auto}</style></head><body>'
+      + urls.map(u => '<div class="p"><img src="' + u + '"></div>').join('')
+      + '</body></html>');
+    d.close();
+    await Promise.all(Array.from(d.images).map(i => i.decode()));
+    marco.contentWindow.focus();
+    marco.contentWindow.print();
+  } finally {
+    imprimiendo = false;
+  }
+}
+function escapeHtmlImpresion(t) {
+  return String(t || '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 }
 
 
@@ -3706,25 +3791,27 @@ function cargarImagenCompleta(src) {
   });
 }
 
-async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted) {
+async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted, claro) {
   if (!imagenes.length) return;
 
   const col = a => doc.setTextColor(...a);
   const fill = a => doc.setFillColor(...a);
   const stroke = a => doc.setDrawColor(...a);
+  const cfg = getConfig();
+  // Mini-cabecera de las páginas de imágenes
+  const miniCabecera = () => {
+    if (claro) { stroke([120, 128, 140]); doc.setLineWidth(0.4); doc.line(ml, 12, W - mr, 12); }
+    else { fill(navy); doc.rect(0, 0, W, 12, 'F'); }
+    col(claro ? [26, 26, 26] : [255, 255, 255]); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.text((cfg.nombre || NOMBRE_EMPRESA_GENERICO).toUpperCase(), ml, 8);
+    col(claro ? [75, 85, 99] : [168, 191, 208]); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    doc.text('IMÁGENES ADJUNTAS', W - mr, 8, { align: 'right' });
+  };
 
   // Nueva página para imágenes
   doc.addPage();
-  let y = 15;
-
-  // Mini-cabecera en la página de imágenes
-  fill(navy); doc.rect(0, 0, W, 12, 'F');
-  col([255, 255, 255]); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-  const cfg = getConfig();
-  doc.text((cfg.nombre || NOMBRE_EMPRESA_GENERICO).toUpperCase(), ml, 8);
-  col([168, 191, 208]); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-  doc.text('IMÁGENES ADJUNTAS', W - mr, 8, { align: 'right' });
-  y = 20;
+  miniCabecera();
+  let y = 20;
 
   const usableW = W - ml - mr;
   // Una sola foto: a todo el ancho. Varias: dos por fila.
@@ -3744,11 +3831,7 @@ async function pdfAnadirImagenes(doc, W, H, ml, mr, navy, border, muted) {
     }
     if (y + imgH + captionH > H - 20) {
       doc.addPage();
-      fill(navy); doc.rect(0, 0, W, 12, 'F');
-      col([255, 255, 255]); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-      doc.text((cfg.nombre || NOMBRE_EMPRESA_GENERICO).toUpperCase(), ml, 8);
-      col([168, 191, 208]); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-      doc.text('IMÁGENES ADJUNTAS', W - mr, 8, { align: 'right' });
+      miniCabecera();
       y = 20;
     }
 
