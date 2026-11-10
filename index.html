@@ -2770,6 +2770,7 @@ function guardarEnHistorial(){
       h[idx] = estado;
       saveHistorial(h);
       mostrarToast('🔄 Documento actualizado', true);
+      if (window.CRUCE_PANEL) CRUCE_PANEL.trasGuardar();
       return;
     }
   }
@@ -2780,6 +2781,7 @@ function guardarEnHistorial(){
   actualizarBotonGuardar();
   renderAccesoRapido();
   mostrarToast('✓ Guardado en el historial',true);
+  if (window.CRUCE_PANEL) CRUCE_PANEL.trasGuardar();
 }
 
 function cargarEstado(estado){
@@ -2807,7 +2809,7 @@ function cargarEstado(estado){
   document.getElementById('notas_internas').value=estado.notas_internas||'';
   document.getElementById('anticipo').value=estado.anticipo||'';
   documentoVinculo=estado.vinculo||null;
-  cruceDoc={mes_factura:estado.mes_factura, enviada_multibett:estado.enviada_multibett, cruce_ignoradas:estado.cruce_ignoradas};
+  cruceDoc={mes_factura:estado.mes_factura, enviada_multibett:estado.enviada_multibett, cruce_ignoradas:estado.cruce_ignoradas, cruce_aceptadas:estado.cruce_aceptadas};
   // sync IVA quick buttons
   syncIvaQuick(parseFloat(estado.iva_pct||21));
   lineas=(estado.lineas||[]).map(l=>({...l}));
@@ -2820,7 +2822,7 @@ function cargarEstado(estado){
   documentoEnEdicion = estado.id || null;
   actualizarBotonGuardar();
   renderAccesoRapido();
-  if (window.CRUCE_PANEL) CRUCE_PANEL.pintar();
+  if (window.CRUCE_PANEL) CRUCE_PANEL.alCargar();
   mostrarToast('Documento cargado — puedes editarlo y actualizar');
 }
 let documentoEnEdicion = null;
@@ -4011,10 +4013,10 @@ function renumerarPorAnyo() {
 }
 
 // ── RENUMERAR HISTORIAL POR AÑO ─── (fin) ─────────────────────────────────────
-function sugerirNumero() {
+function numeroSiguiente(tipo) {
   const h = getHistorial();
   const anyo = new Date().getFullYear();
-  const prefijo = prefijoSerie(tipoActual);
+  const prefijo = prefijoSerie(tipo);
   // Buscar el mayor correlativo entre documentos del MISMO tipo, MISMO prefijo y MISMO año.
   // Esto evita confundirse con documentos que tengan un prefijo distinto al actual.
   let maxNum = 0;
@@ -4023,7 +4025,7 @@ function sugerirNumero() {
     : new RegExp('^' + anyo + '-(\\d+)$');
   h.forEach(d => {
     if (!d.numero) return;
-    if ((d.tipo||'') !== tipoActual) return; // solo el mismo tipo de documento
+    if ((d.tipo||'') !== tipo) return; // solo el mismo tipo de documento
     const m = (d.numero||'').trim().match(patron);
     if (m) {
       const n = parseInt(m[1]);
@@ -4031,7 +4033,10 @@ function sugerirNumero() {
     }
   });
   const sig = String(maxNum + 1).padStart(3, '0');
-  const sugerido = prefijo ? `${prefijo}-${anyo}-${sig}` : `${anyo}-${sig}`;
+  return prefijo ? `${prefijo}-${anyo}-${sig}` : `${anyo}-${sig}`;
+}
+function sugerirNumero() {
+  const sugerido = numeroSiguiente(tipoActual);
   const el = document.getElementById('numSugerencia');
   if (el) {
     el.textContent = `→ Siguiente sugerido: ${sugerido}`;
@@ -4178,7 +4183,7 @@ function duplicarDesdeHistorial(id, e) {
   const ref = `${d.tipo||'documento'} ${d.numero||''}`.trim();
   if(!confirm(`¿Duplicar «${ref}»?\n\nSe creará una copia nueva (sin número, para que le asignes el siguiente) que podrás editar.`)) return;
   const nuevo = {...d, id: Date.now(), guardadoEn: new Date().toISOString(), numero: '', estado: 'PENDIENTE'};
-  delete nuevo.mes_factura; delete nuevo.enviada_multibett; delete nuevo.cruce_ignoradas; // son de la nota original
+  delete nuevo.mes_factura; delete nuevo.enviada_multibett; delete nuevo.cruce_ignoradas; delete nuevo.cruce_aceptadas; // son de la nota original
   nuevo.imagenes = (d.imagenes||[]).map(x=>({...x}));
   nuevo.lineas = (d.lineas||[]).map(x=>({...x}));
   const h = getHistorial();

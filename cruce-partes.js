@@ -160,9 +160,63 @@
     return ls;
   };
 
+  // Igual que calcTotales de index.html, para notas que no están abiertas.
+  CRUCE.totalDoc = function (doc) {
+    var ls = lista(doc.lineas), sub = ls.reduce(function (s, l) { return s + CRUCE.baseLinea(l); }, 0);
+    var d = num(doc.descuento); if (d < 0) d = 0; if (d > 100) d = 100;
+    var f = sub > 0 ? 1 - d / 100 : 1, general = doc.iva_pct === '' || doc.iva_pct === undefined || isNaN(parseFloat(doc.iva_pct)) ? 21 : parseFloat(doc.iva_pct);
+    return ls.reduce(function (s, l) {
+      var tipo = l.iva === undefined || l.iva === null ? general : parseFloat(l.iva);
+      return s + CRUCE.baseLinea(l) * f * (1 + tipo / 100);
+    }, 0);
+  };
+
+  function lineaVacia(l) { return l.tipo !== 'titulo' && !l.refParte && !l.dirParte && !l.desc && !l.cod && !l.cant && !l.precio; }
+  CRUCE.lineaVacia = lineaVacia;
+
+  // Dónde acaban de verdad las líneas de un parte dentro de su bloque.
+  CRUCE.finParte = function (lineas, b) {
+    var fin = b.inicio;
+    while (fin < b.fin && lineas[fin].tipo !== 'titulo') fin++;
+    while (fin > b.inicio + 1 && lineaVacia(lineas[fin - 1])) fin--;
+    return fin;
+  };
+
+  // Saca de una nota todos los bloques de una referencia y los pone al final de la otra. Un título y las vacías del final no son del parte.
+  CRUCE.moverBloque = function (origen, destino, ref) {
+    var r = CRUCE.normRef(ref), bloques = CRUCE.bloquesDe(origen.lineas).filter(function (b) { return b.ref === r; });
+    if (!bloques.length) throw new Error('No encuentro el parte ' + r + ' en la nota');
+    var sale = {}, mueve = [];
+    bloques.forEach(function (b) {
+      var fin = CRUCE.finParte(origen.lineas, b);
+      for (var i = b.inicio; i < fin; i++) { sale[i] = 1; mueve.push(origen.lineas[i]); }
+    });
+    var quedan = lista(destino.lineas).map(function (l) { return Object.assign({}, l); });
+    while (quedan.length && lineaVacia(quedan[quedan.length - 1])) quedan.pop();
+    var id = quedan.reduce(function (m, l) { return Math.max(m, num(l.id)); }, -1) + 1;
+    var o = Object.assign({}, origen, { lineas: origen.lineas.filter(function (l, i) { return !sale[i]; }).map(function (l) { return Object.assign({}, l); }) });
+    var d = Object.assign({}, destino, { lineas: quedan.concat(mueve.map(function (l) { return Object.assign({}, l, { id: id++ }); })) });
+    o.total = CRUCE.totalDoc(o); d.total = CRUCE.totalDoc(d);
+    return { origen: o, destino: d };
+  };
+
+  CRUCE.notasDelMes = function (notas, mes) { return lista(notas).filter(function (n) { return CRUCE.esNotaMultibett(n) && CRUCE.mesDeNota(n) === mes; }); };
+
+  CRUCE.crearNotaMes = function (mes, p) {
+    var n = { tipo: 'NOTA DE TRABAJO', estado: 'PENDIENTE', numero: '', fecha: mes + '-01', referencia: MESES[+mes.split('-')[1] - 1], lineas: [], imagenes: [], descuento: '', anticipo: '', observaciones: '', notas_internas: '', vinculo: null, total: 0 };
+    ['cliente_nombre', 'cliente_dir', 'cliente_pob', 'cliente_nif', 'cliente_tel', 'cliente_num', 'cliente_email', 'idioma_pdf', 'iva_pct', 'forma_pago', 'texto_legal', 'validez_dias'].forEach(function (k) { n[k] = p[k]; });
+    return n;
+  };
+
+  CRUCE.lineasParaPartes = function (b) {
+    return lista(b.lineas).filter(function (l) { return (l.desc || l.cod || l.cant || l.precio) && l.tipo !== 'titulo'; })
+      .map(function (l) { return { codigo: l.cod || '', descripcion: l.desc || '', cantidad: num(l.cant), precio: num(l.precio), dto: num(l.dto) }; });
+  };
+  CRUCE.puedeRellenar = function (p) { return !lista(p.lineas_realizadas).length && !p.factura_ref; };
+
   // Segunda sesión, contra el proyecto de Supabase de la app de partes. La contraseña no se guarda nunca.
   var CLAVE_SESION = 'mc_partes_session', TAM_BLOQUE = 1000;
-  var COLUMNAS = 'id,updated_at,tipo,estado,expediente,direccion,poblacion,realizado_at,factura_ref,cierre,lineas_realizadas,lineas_autorizadas,lineas_valoracion,importe_autorizado,importe_valorado';
+  var COLUMNAS = 'id,updated_at,mes_factura,tipo,estado,expediente,direccion,poblacion,realizado_at,factura_ref,cierre,lineas_realizadas,lineas_autorizadas,lineas_valoracion,importe_autorizado,importe_valorado';
   function fallo(codigo) { var e = new Error(codigo); e.codigo = codigo; return e; }
 
   CRUCE.crearClientePartes = function (o) {
@@ -213,6 +267,14 @@
             });
           })
           .catch(function () { olvidar(); return { ok: false, error: 'No hay conexión a internet' }; });
+      },
+      // Solo escribe si el parte sigue como se leyó; si otro lo cambió, no pisa nada.
+      escribirParte: function (id, cambios, updated_at) {
+        return pedir('/rest/v1/partes?select=' + COLUMNAS + '&id=eq.' + encodeURIComponent(id) + '&updated_at=eq.' + encodeURIComponent(updated_at), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(cambios) })
+          .then(function (filas) { return filas.length ? { ok: true, parte: filas[0] } : { ok: false, conflicto: true }; });
+      },
+      anotarEvento: function (parte_id, nota, estado) {
+        return pedir('/rest/v1/eventos', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ parte_id: parte_id, nota: nota, estado: estado || null }) });
       },
       // Supabase corta cada consulta en 1.000 filas sin avisar: se lee por bloques.
       leerPartes: function () {

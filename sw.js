@@ -3,7 +3,7 @@
 // Las tipografías y la librería de PDF (cdnjs): de la copia guardada, que se refresca por detrás.
 // Supabase y WhatsApp no se tocan: van siempre a la red.
 // Al actualizarse solo borra sus cachés (facturas-*): en la misma web hay otras apps con las suyas.
-const CACHE = 'facturas-v4';
+const CACHE = 'facturas-v5';
 const APP = ['./', './index.html', './cruce-partes.js', './cruce-partes-panel.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const LIBS = /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)\//;
 
