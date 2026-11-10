@@ -72,6 +72,9 @@
   function candidatos(d) { return CRUCE.candidatosRelleno({ nota: d, partes: partesCruce(), ignoradas: cruceDoc.cruce_ignoradas || [] }); }
   function plural(n) { return n + (n === 1 ? ' parte' : ' partes'); }
 
+  // El mes de la nota donde ya está el parte, o '' si es el mismo de la nota abierta.
+  function mesOtraNota(r, x) { var m = CRUCE.mesDeNota(x.nota); return m && m !== r.mes ? m : ''; }
+
   function htmlGrupos(r, nPasar) {
     var ign = cruceDoc.cruce_ignoradas || [], difs = difVisibles(r);
     var problemas = r.faltan.length + r.sinTerminar.length + r.erratas.length + r.varios.length + r.enOtra.length + r.pendientesMover.length + difs.length + r.noExisten.length + S.pendientes.length;
@@ -88,9 +91,11 @@
     h += grupo('varios', 'Referencias con varios partes', r.varios.map(function (x) {
       return fila(datosBloque(x.bloque, '¿cuál es?'), x.partes.map(function (p) { return boton('elegir', [p.direccion, p.poblacion].filter(Boolean).join(', ') || p.estado, { id: p.id, ref: x.bloque.ref }); }).join(''));
     }), true);
+    var aOtroMes = r.enOtra.filter(function (x) { return mesOtraNota(r, x); });
     h += grupo('enOtra', 'Están en la nota de otro mes', r.enOtra.map(function (x) {
-      return fila(datosParte(x.parte) + ' <small>· en ' + eh(x.nota.numero) + ' (' + eh(x.nota.referencia) + ')</small>', boton('traer', 'Traer a esta', { id: x.parte.id, ref: x.bloque.ref, nota: x.nota.id }));
-    }), true);
+      var m = mesOtraNota(r, x);
+      return fila(datosParte(x.parte) + ' <small>· en ' + eh(x.nota.numero) + ' (' + eh(x.nota.referencia) + ')</small>', (m ? boton('aMesNota', 'Pasar a ' + nombreMes(m), { id: x.parte.id }, true) : '') + boton('traer', 'Traer a esta', { id: x.parte.id, ref: x.bloque.ref, nota: x.nota.id }));
+    }), true, aOtroMes.length > 1 ? '<div class="cr-fila">' + boton('aMesNotaTodos', 'Pasar todos al mes de su nota (' + aOtroMes.length + ')', {}, true) + '</div>' : '');
     h += grupo('pendientesMover', 'Pendientes de mover', r.pendientesMover.map(function (x) {
       return fila(datosParte(x.parte) + ' <small>· de ' + eh(x.nota.referencia) + ' a ' + eh(nombreMes(x.mesDestino)) + '</small>', boton('mover', 'Mover', { id: x.parte.id, ref: x.bloque.ref, nota: x.nota.id === undefined || x.nota.id === null ? '' : x.nota.id, mes: x.mesDestino }, true));
     }), true);
@@ -294,6 +299,15 @@
     bloques.forEach(function (b) { S.cola = S.cola.then(function () { return crearUno(b, d, mes, uid); }); });
   }
 
+  // Deja el parte en el mes de la nota donde ya está: solo cambia partes, las notas se quedan igual.
+  function aMesNota(id) {
+    var r = calcular(documento()), c = r.enOtra.filter(function (x) { return mesOtraNota(r, x) && (!id || x.parte.id === id); });
+    if (!c.length) return;
+    if (!id && !confirm('¿Pasar ' + plural(c.length) + ' al mes de la nota en la que están? Las notas no cambian.')) return;
+    if (!confirmaFacturado(c.map(function (x) { return x.parte; }))) return;
+    c.forEach(function (x) { var m = mesOtraNota(r, x); aPartes(x.parte, { mes_factura: m }, textoMes(m)); });
+  }
+
   function fijarHuella() { var h = {}; CRUCE.bloquesDe(lineas).forEach(function (b) { if (b.ref) h[b.ref] = JSON.stringify(CRUCE.lineasParaPartes(b)); }); S.huella = h; }
 
   // Tras guardar: solo los partes cuyo bloque se ha tocado reciben las líneas, y solo si en partes están vacías.
@@ -338,6 +352,8 @@
       return aPartes(pa, pe.cambios, pe.nota, pe.fase, true).then(function (bien) { if (bien) S.pendientes = S.pendientes.filter(function (x) { return x !== pe; }); pintar(); });
     }
     if (q === 'pasarImportes') return pasarImportes();
+    if (q === 'aMesNota') return aMesNota(b.dataset.id);
+    if (q === 'aMesNotaTodos') return aMesNota(null);
     if (q === 'crearParte' || q === 'crearTodos') {
       return crearPartes(calcular(documento()).noExisten.map(function (x) { return x.bloque; }).filter(function (bl) {
         return CRUCE.aseguradoraDe(bl.ref) && (q === 'crearTodos' || bl.ref === b.dataset.ref);
