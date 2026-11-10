@@ -214,6 +214,34 @@
   };
   CRUCE.puedeRellenar = function (p) { return !lista(p.lineas_realizadas).length && !p.factura_ref; };
 
+  // Partes de esta nota cuyas líneas se pueden pasar a la app de partes: emparejados sin duda, vacíos allí y con importe aquí.
+  CRUCE.candidatosRelleno = function (o) {
+    var ign = {}; lista(o.ignoradas).forEach(function (x) { ign[CRUCE.normRef(x)] = 1; });
+    var out = [];
+    bloquesConRef(o.nota).forEach(function (b) {
+      var e = CRUCE.emparejar(b.ref, o.partes), p = e.partes[0];
+      if (ign[b.ref] || e.tipo !== 'exacto' || !b.base || !CRUCE.esFacturable(p) || !CRUCE.puedeRellenar(p)) return;
+      out.push({ parte: p, bloque: b, lineas: CRUCE.lineasParaPartes(b) });
+    });
+    return out;
+  };
+
+  // La aseguradora sale de la forma del expediente. Lo que no encaje no se puede crear (texto libre, conexiones A…).
+  CRUCE.aseguradoraDe = function (ref) {
+    var r = CRUCE.normRef(ref);
+    if (/^IM\d{6,}$/.test(r)) return 'Iris Global';
+    if (/^V\d{6,}$/.test(r)) return 'Mapfre';
+    if (/^91\d{5,}$/.test(r)) return 'Santalucía';
+    if (/^AS\.\d/.test(r)) return 'Asyrep';
+    return null;
+  };
+
+  // Alta de un parte ya hecho, a partir de su bloque en la nota.
+  CRUCE.parteDesdeBloque = function (b, o) {
+    var dia = String(o.fecha || '').indexOf(o.mes) === 0 ? o.fecha : o.mes + '-01';
+    return { expediente: b.ref, aseguradora: CRUCE.aseguradoraDe(b.ref), tipo: 'siniestro', estado: 'realizado', realizado_at: dia + 'T12:00:00Z', mes_factura: o.mes, direccion: b.dir || null, lineas_realizadas: CRUCE.lineasParaPartes(b), creado_por: o.creado_por };
+  };
+
   // Segunda sesión, contra el proyecto de Supabase de la app de partes. La contraseña no se guarda nunca.
   var CLAVE_SESION = 'mc_partes_session', TAM_BLOQUE = 1000;
   var COLUMNAS = 'id,updated_at,mes_factura,tipo,estado,expediente,direccion,poblacion,realizado_at,factura_ref,cierre,lineas_realizadas,lineas_autorizadas,lineas_valoracion,importe_autorizado,importe_valorado';
@@ -223,7 +251,7 @@
     var url = o.url, clave = o.clave, red = o.fetch, st = o.storage, ses = null;
     try { ses = JSON.parse(st.getItem(CLAVE_SESION) || 'null'); } catch (e) { ses = null; }
 
-    function guardar(d) { ses = { access_token: d.access_token, refresh_token: d.refresh_token }; st.setItem(CLAVE_SESION, JSON.stringify(ses)); }
+    function guardar(d) { ses = { access_token: d.access_token, refresh_token: d.refresh_token, user_id: d.user ? d.user.id : (ses && ses.user_id) }; st.setItem(CLAVE_SESION, JSON.stringify(ses)); }
     function olvidar() { ses = null; st.removeItem(CLAVE_SESION); }
     function cabeceras() { return { apikey: clave, Authorization: 'Bearer ' + ses.access_token, 'Content-Type': 'application/json' }; }
 
@@ -252,6 +280,15 @@
 
     return {
       haySesion: function () { return !!(ses && ses.access_token); },
+      // Las sesiones abiertas antes de guardar el usuario lo llevan dentro del token.
+      usuario: function () {
+        if (!ses) return null;
+        if (ses.user_id) return ses.user_id;
+        try { return JSON.parse(atob(ses.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || null; } catch (e) { return null; }
+      },
+      crearParte: function (fila) {
+        return pedir('/rest/v1/partes?select=' + COLUMNAS, { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(fila) }).then(function (filas) { return filas[0]; });
+      },
       salir: olvidar,
       entrar: function (email, password) {
         return red(url + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: clave, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: password }) })

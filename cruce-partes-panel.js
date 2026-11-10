@@ -69,10 +69,14 @@
   }
   function datosBloque(b, extra) { return '<b>' + eh(b.refOriginal.trim()) + '</b> <small>' + [eh(b.dir), extra].filter(Boolean).join(' · ') + '</small>'; }
 
-  function htmlGrupos(r) {
+  function candidatos(d) { return CRUCE.candidatosRelleno({ nota: d, partes: partesCruce(), ignoradas: cruceDoc.cruce_ignoradas || [] }); }
+  function plural(n) { return n + (n === 1 ? ' parte' : ' partes'); }
+
+  function htmlGrupos(r, nPasar) {
     var ign = cruceDoc.cruce_ignoradas || [], difs = difVisibles(r);
     var problemas = r.faltan.length + r.sinTerminar.length + r.erratas.length + r.varios.length + r.enOtra.length + r.pendientesMover.length + difs.length + r.noExisten.length + S.pendientes.length;
     var h = problemas ? '' : '<div class="cr-ok">✓ Todo cuadra con la app de partes</div>';
+    if (nPasar) h += '<div class="cr-fila"><div class="cr-txt"><small>' + plural(nPasar) + ' sin líneas en la app de partes</small></div>' + boton('pasarImportes', 'Pasar importes a partes (' + nPasar + ')', {}, true) + '</div>';
     h += grupo('pendientesEscribir', 'Sin pasar a la app de partes', S.pendientes.map(function (x) { return fila('<b>' + eh(x.expediente) + '</b> <small>' + eh(x.nota) + '</small>', boton('reintentar', 'Reintentar', { num: x.num }, true)); }), true);
     h += grupo('faltan', 'Faltan en la nota', r.faltan.map(function (p) {
       return fila(datosParte(p), boton('anadir', 'Añadir', { id: p.id }, true) + '<input type="month" title="Llevar a otro mes" aria-label="Llevar a otro mes" data-cruce="otroMes" data-id="' + eh(p.id) + '">');
@@ -94,7 +98,10 @@
       return fila(datosBloque(x.bloque, 'nota ' + euros(x.baseNota) + ' · partes ' + euros(x.basePartes)), boton('usarNota', 'Vale la nota', { id: x.parte.id, ref: x.bloque.ref })
         + (CRUCE.lineasDeParte(x.parte).length ? boton('usarPartes', 'Valen las de partes', { id: x.parte.id, ref: x.bloque.ref }) : ''));
     }), true);
-    h += grupo('noExisten', 'No existen en partes', r.noExisten.map(function (x) { return fila(datosBloque(x.bloque), boton('ignorar', 'Ignorar en esta nota', { ref: x.bloque.ref })); }), true);
+    var crear = r.noExisten.filter(function (x) { return CRUCE.aseguradoraDe(x.bloque.ref); });
+    h += grupo('noExisten', 'No existen en partes', r.noExisten.map(function (x) {
+      return fila(datosBloque(x.bloque), (CRUCE.aseguradoraDe(x.bloque.ref) ? boton('crearParte', 'Crear en partes', { ref: x.bloque.ref }, true) : '') + boton('ignorar', 'Ignorar en esta nota', { ref: x.bloque.ref }));
+    }), true, crear.length > 1 ? '<div class="cr-fila">' + boton('crearTodos', 'Crear todos en partes (' + crear.length + ')', {}, true) + '</div>' : '');
     h += grupo('ignoradas', 'Ignoradas en esta nota', ign.map(function (x) { return fila('<b>' + eh(x) + '</b>', boton('recuperar', 'Recuperar', { ref: x })); }), false);
     h += grupo('coinciden', 'Coinciden', r.coinciden.map(function (x) { return fila(datosParte(x.parte) + (x.otroMes ? ' <small>· terminado en ' + eh(nombreMes(CRUCE.mesEfectivo(x.parte))) + '</small>' : '')); }), false);
     return h;
@@ -138,7 +145,7 @@
     var r = calcular(d);
     c.innerHTML = abre + cab + '<span class="cr-mes">Mes <input data-cruce="mes" type="month" value="' + eh(r.mes) + '"></span>'
       + boton('enviada', cruceDoc.enviada_multibett ? '✓ Enviada a Multibett el ' + fecha(cruceDoc.enviada_multibett) : 'Marcar enviada a Multibett') + boton('actualizar', 'Actualizar') + '</div>'
-      + (S.msg ? '<div data-cruce="aviso" class="cr-aviso">' + eh(S.msg) + '</div>' : '') + htmlGrupos(r) + cierra;
+      + (S.msg ? '<div data-cruce="aviso" class="cr-aviso">' + eh(S.msg) + '</div>' : '') + htmlGrupos(r, candidatos(d).length) + cierra;
     c.dataset.listo = '1';
   }
 
@@ -260,6 +267,33 @@
     aPartes(p, { expediente: ref }, 'Expediente corregido desde la nota de facturas: antes ponía ' + p.expediente);
   }
 
+  function pasarImportes() {
+    var d = documento(), c = candidatos(d);
+    if (!c.length || !confirm('¿Pasar las líneas de esta nota a ' + plural(c.length) + ' que no las tienen en la app de partes?')) return;
+    fijarHuella(); // ya van aquí: que el guardado no los pase otra vez
+    guardarEnHistorial();
+    c.forEach(function (x) { aPartes(x.parte, { lineas_realizadas: x.lineas }, 'Líneas traídas de la nota ' + (d.numero || '')); });
+  }
+
+  function crearUno(b, d, mes, uid) {
+    return cliente().crearParte(CRUCE.parteDesdeBloque(b, { mes: mes, fecha: d.fecha, creado_por: uid })).then(function (n) {
+      if (S.partes) S.partes.push(n);
+      return cliente().anotarEvento(n.id, 'Creado desde la nota ' + (d.numero || ''), 'realizado').catch(function () { return null; }).then(pintar);
+    }).catch(function () {
+      // No se sabe si llegó a crearse: se relee para no duplicarlo.
+      S.msg = 'No he podido confirmar el alta del parte ' + b.ref + '. He vuelto a leer los datos: comprueba si está antes de repetir.';
+      S.partes = null; pintar();
+    });
+  }
+  function crearPartes(bloques) {
+    var d = documento(), mes = CRUCE.mesDeNota(d), uid = cliente().usuario();
+    if (!bloques.length) return;
+    if (!uid) { S.msg = 'Sal y vuelve a entrar con tu cuenta de partes para poder crear partes.'; return pintar(); }
+    if (!confirm('¿Crear ' + plural(bloques.length) + ' en la app de partes, como terminados y facturados en ' + nombreMes(mes) + '?')) return;
+    guardarEnHistorial();
+    bloques.forEach(function (b) { S.cola = S.cola.then(function () { return crearUno(b, d, mes, uid); }); });
+  }
+
   function fijarHuella() { var h = {}; CRUCE.bloquesDe(lineas).forEach(function (b) { if (b.ref) h[b.ref] = JSON.stringify(CRUCE.lineasParaPartes(b)); }); S.huella = h; }
 
   // Tras guardar: solo los partes cuyo bloque se ha tocado reciben las líneas, y solo si en partes están vacías.
@@ -302,6 +336,12 @@
       var pe = S.pendientes.filter(function (x) { return String(x.num) === b.dataset.num; })[0], pa = pe && parte(pe.id);
       if (!pa) return;
       return aPartes(pa, pe.cambios, pe.nota, pe.fase, true).then(function (bien) { if (bien) S.pendientes = S.pendientes.filter(function (x) { return x !== pe; }); pintar(); });
+    }
+    if (q === 'pasarImportes') return pasarImportes();
+    if (q === 'crearParte' || q === 'crearTodos') {
+      return crearPartes(calcular(documento()).noExisten.map(function (x) { return x.bloque; }).filter(function (bl) {
+        return CRUCE.aseguradoraDe(bl.ref) && (q === 'crearTodos' || bl.ref === b.dataset.ref);
+      }));
     }
     var p = parte(b.dataset.id), mes = CRUCE.mesDeNota(documento());
     if (!p) return;
