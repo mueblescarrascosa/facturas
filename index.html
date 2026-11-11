@@ -515,6 +515,16 @@
     .linea-row .m-field { display:flex; flex-direction:column; gap:3px; margin-bottom:10px; }
     .linea-row .m-field label { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; }
     .linea-row .m-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    /* v5.43: cantidad, precio, dto. e IVA en una fila; código junto al importe (la línea ocupa la mitad) */
+    .linea-row .m-fila4 { grid-template-columns:0.8fr 1.3fr 0.9fr 1fr; gap:6px; }
+    .linea-row .m-fila4 .m-field { margin-bottom:8px; min-width:0; }
+    .linea-row .m-fila4 input, .linea-row .m-fila4 select { padding:9px 6px; text-align:right; }
+    .linea-row .m-fila4 select { text-align:left; }
+    .linea-row .m-fila-cod { display:flex; gap:8px; align-items:center; }
+    .linea-row .m-fila-cod input { flex:0 1 42%; padding:9px 10px; font-size:16px; }
+    .linea-row .m-fila-cod .importe-cell { flex:1 1 auto; margin-top:0; }
+    .linea-row .linea-acciones { margin-top:8px; }
+    .linea-row .linea-acciones .btn-dup, .linea-row .linea-acciones .btn-del, .linea-row .linea-acciones .btn-mover { padding:8px 12px; }
     .linea-row .importe-cell {
       font-size:18px; font-weight:700; text-align:right; padding:8px 12px; background:var(--green-light);
       color:var(--navy); border-radius:8px; margin-top:4px;
@@ -577,7 +587,7 @@
 
   /* Móviles pequeños */
   @media (max-width:420px) {
-    .linea-row .m-field-row { grid-template-columns:1fr; }
+    .linea-row .m-field-row:not(.m-fila4) { grid-template-columns:1fr; }
     .btn-header { font-size:12px; padding:8px 11px; }
   }
 
@@ -1421,7 +1431,7 @@
 </div>
 
 <script>
-const APP_VERSION = 'v5.42';
+const APP_VERSION = 'v5.43';
 // Nombre que se muestra cuando la cuenta aún no ha configurado el de su empresa
 const NOMBRE_EMPRESA_GENERICO = 'Tu empresa';
 const LEGAL_DEFAULT = 'De acuerdo con la Ley Orgánica 3/2018 de Protección de Datos Personales, le informamos de que los datos facilitados serán incorporados a un fichero titularidad de la empresa emisora de este documento. Podrá ejercitar sus derechos de acceso, rectificación, supresión y portabilidad dirigiéndose a su domicilio.';
@@ -1873,7 +1883,7 @@ document.addEventListener('DOMContentLoaded', () => {
       actualizarPreview();
     });
   });
-  for (let i=0;i<5;i++) addLinea(false);
+  for (let i=0;i<(esMovil()?1:5);i++) addLinea(false);
   aplicarModoTipo();
   actualizarPreview();
   actualizarBadge();
@@ -2191,34 +2201,30 @@ function renderLineas() {
           <div id="visitaAviso_${l.id}" class="ref-parte-aviso" style="display:none"></div>
         </div>
         <div class="m-field">
-          <label>Descripción</label>
-          <textarea placeholder="Descripción del artículo" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea desc-textarea-movil">${esc(l.desc)}</textarea>
+          <textarea aria-label="Descripción" placeholder="Descripción del artículo" rows="1" oninput="updateLinea(${l.id},'desc',this.value); autoGrow(this)" onchange="autocompletarArticulo(${l.id},this.value)" class="desc-textarea desc-textarea-movil">${esc(l.desc)}</textarea>
         </div>
-        <div class="m-field">
-          <label>Código (opcional)</label>
-          <input type="text" list="codigosDatalist" placeholder="Ref." value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)" onkeydown="enterTabEnCodigo(event, ${l.id})">
-        </div>
-        <div class="m-field-row">
+        <div class="m-field-row m-fila4">
           <div class="m-field">
-            <label>Cantidad</label>
+            <label>Cant.</label>
             <input type="number" inputmode="decimal" placeholder="0" value="${l.cant}" min="0" step="1" oninput="updateLinea(${l.id},'cant',this.value)">
           </div>
           <div class="m-field col-precio">
-            <label>Precio (€)</label>
+            <label>Precio €</label>
             <input type="number" inputmode="decimal" placeholder="0,00" value="${l.precio}" min="0" step="0.01" oninput="updateLinea(${l.id},'precio',this.value)">
           </div>
-        </div>
-        <div class="m-field-row col-precio">
-          <div class="m-field">
-            <label>Dto. % (opcional)</label>
+          <div class="m-field col-dto">
+            <label>Dto. %</label>
             <input type="number" inputmode="decimal" placeholder="—" value="${l.dto||''}" min="0" max="100" step="0.01" oninput="updateLinea(${l.id},'dto',this.value)">
           </div>
-          <div class="m-field">
+          <div class="m-field col-iva">
             <label>IVA</label>
             <select aria-label="IVA de la línea" onchange="updateLinea(${l.id},'iva',parseFloat(this.value))">${ivaOpts}</select>
           </div>
         </div>
-        <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
+        <div class="m-fila-cod">
+          <input type="text" list="codigosDatalist" placeholder="Código (opc.)" aria-label="Código (opcional)" value="${esc(l.cod)}" oninput="updateLinea(${l.id},'cod',this.value)" onchange="autocompletarPorCodigo(${l.id},this.value)" onkeydown="enterTabEnCodigo(event, ${l.id})">
+          <div class="importe-cell col-importe" id="imp_${l.id}">${importeLinea(l)}</div>
+        </div>
         <div class="linea-acciones">
           <div class="m-mover">
             <button class="btn-mover" onclick="moverLinea(${l.id},-1)" title="Subir">▲</button>
@@ -2950,7 +2956,7 @@ function nuevoDocumento(){
   documentoVinculo=null;
   cruceDoc={}; if (window.CRUCE_PANEL) CRUCE_PANEL.pintar();
   syncIvaQuick(21);
-  lineas=[]; lineasId=0; for(let i=0;i<5;i++) addLinea(false);
+  lineas=[]; lineasId=0; for(let i=0;i<(esMovil()?1:5);i++) addLinea(false);
   imagenes=[]; imgIdCounter=0; renderImagenes();
   documentoEnEdicion=null;
   actualizarBotonGuardar();
@@ -4783,7 +4789,7 @@ function nuevoDocParaCliente(clienteId) {
   documentoVinculo=null; documentoEnEdicion=null;
   cruceDoc={}; if (window.CRUCE_PANEL) CRUCE_PANEL.pintar();
   syncIvaQuick(21);
-  lineas=[]; lineasId=0; for(let i=0;i<5;i++) addLinea(false);
+  lineas=[]; lineasId=0; for(let i=0;i<(esMovil()?1:5);i++) addLinea(false);
   imagenes=[]; imgIdCounter=0; renderImagenes();
   sugerirNumero(); actualizarBotonGuardar(); actualizarPreview();
   cerrarDrawers();
