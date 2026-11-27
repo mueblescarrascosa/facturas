@@ -148,9 +148,57 @@
     return r;
   };
 
+  // ── Dirección para la nota, como se escribe a mano en las de Multibett ──
+  // En mayúsculas y con el tipo de vía abreviado. Jaén capital: «CL AGUSTÍN RÓDENAS, 9».
+  // En un pueblo: vía y pueblo sin número, «CL GREDOS, VVA DEL ARZOBISPO».
+  // Sin pueblo conocido se toma como Jaén capital (así venían las de Jaén en las notas).
+  var TIPOS_VIA = [
+    [/^(calle|cl|c|cll|c\/)$/, 'CL'], [/^(avenida|avda|avd|av)$/, 'AVD'], [/^(plaza|pza|pz|pl|plz)$/, 'PZ'],
+    [/^(carretera|ctra|cra|cr|cta|crta)$/, 'CTA'], [/^(paseo|pso|ps|po)$/, 'PASEO'], [/^(pasaje|pje|pj)$/, 'PJE'],
+    [/^(ronda|rd|rda)$/, 'RD'], [/^(camino|cm|cmno)$/, 'CM'], [/^(urbanizacion|urb)$/, 'URB'],
+    [/^(travesia|trv|trav)$/, 'TRAV'], [/^(lugar|lg)$/, 'LG'], [/^(barriada|bda)$/, 'BDA'], [/^(glorieta|gta)$/, 'GTA']
+  ];
+  var PUEBLOS_CORTOS = { 'villanueva del arzobispo': 'VVA DEL ARZOBISPO', 'vva': 'VVA DEL ARZOBISPO', 'vva del arzobispo': 'VVA DEL ARZOBISPO' };
+  function sinAcentos(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+  function tipoVia(palabra) {
+    var w = sinAcentos(palabra).replace(/\.$/, '');
+    for (var i = 0; i < TIPOS_VIA.length; i++) if (TIPOS_VIA[i][0].test(w)) return TIPOS_VIA[i][1];
+    return '';
+  }
+  function esJaen(pueblo) { var w = sinAcentos(pueblo); return !w || w === 'jaen'; }
+  CRUCE.dirParaNota = function (direccion, poblacion) {
+    var d = String(direccion || '');
+    var dentro = /^\s*\(([^)]*)\)/.exec(d);   // «( Cl Flores de Lemus 7) Bq 5 Edif…»: la calle va dentro
+    if (dentro) d = dentro[1];
+    d = d.replace(/\([^)]*\)/g, ' ').replace(/^\s*c\/\s*/i, 'Cl ').replace(/\s+/g, ' ').trim();
+    var pueblo = String(poblacion || '').trim();
+    // Quitar código postal y provincia repetida: «…, 23006 Jaén, Jaén»
+    var trozos = d.split(',').map(function (t) { return t.trim().replace(/^\d{5}\s*/, ''); }).filter(Boolean);
+    if (!pueblo && trozos.length > 1) {
+      var ult = trozos[trozos.length - 1];
+      if (!/\d/.test(ult) && !tipoVia(ult.split(' ')[0])) pueblo = trozos.pop();
+    }
+    while (trozos.length > 1 && sinAcentos(trozos[trozos.length - 1]) === sinAcentos(pueblo)) trozos.pop();
+    var palabras = trozos.join(' ').split(' ').filter(Boolean);
+    if (!palabras.length) return '';
+    var tipo = tipoVia(palabras[0]);
+    if (tipo) { palabras.shift(); while (palabras.length > 1 && tipoVia(palabras[0]) === tipo) palabras.shift(); }
+    // El nombre de la vía acaba en el primer número (o en «Nº 12»).
+    var nombre = [], numero = '';
+    for (var i = 0; i < palabras.length; i++) {
+      var w = palabras[i], m = /^(?:n[º°o.]?)?(\d+)/i.exec(w);
+      if (/^n[º°o.]?$/i.test(w) && /^\d/.test(palabras[i + 1] || '')) continue;
+      if (m && nombre.length) { numero = String(parseInt(m[1], 10)); break; }
+      nombre.push(w);
+    }
+    var via = ((tipo ? tipo + ' ' : '') + nombre.join(' ')).toUpperCase().replace(/\s+/g, ' ').trim();
+    if (esJaen(pueblo)) return numero ? via + ', ' + numero : via;
+    return via + ', ' + (PUEBLOS_CORTOS[sinAcentos(pueblo)] || pueblo.toUpperCase());
+  };
+
   // Líneas para meter un parte en la nota. Solo la primera lleva referencia y dirección.
   CRUCE.bloqueDesdeParte = function (p, iva) {
-    var dir = [p.direccion, p.poblacion].filter(function (x) { return x && String(x).trim(); }).join(', ');
+    var dir = CRUCE.dirParaNota(p.direccion, p.poblacion);
     var txt = function (v) { return v === null || v === undefined || v === 0 ? '' : String(v); };
     var ls = CRUCE.lineasDeParte(p).map(function (l) {
       return { tipo: 'linea', cod: l.codigo || '', refParte: '', dirParte: '', desc: l.descripcion || '', cant: txt(l.cantidad), precio: txt(l.precio), dto: txt(l.dto), iva: iva };
